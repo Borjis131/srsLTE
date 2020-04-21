@@ -64,5 +64,37 @@ inline void uint24_to_uint8(uint32_t i, uint8_t* buf)
   buf[2] = i & 0xFF;
 }
 
+/***************************************************
+ * _mod versions work with uint8_t buffers only
+ **************************************************/
+
+inline void uint8_to_uint24_mod(uint8_t* buf, uint8_t* i){
+  i[0] = buf[0];
+  i[1] = buf[1];
+  i[2] = buf[2];
+}
+
+inline void uint8_to_uint40_mod(uint8_t* buf, uint8_t* i){
+  i[0] = buf[0];
+  i[1] = buf[1];
+  i[2] = buf[2];
+  i[3] = buf[3];
+  i[4] = buf[4];
+}
+
+inline void uint24_to_uint8_mod(uint8_t i[3], uint8_t* buf){
+  buf[0] = i[0];
+  buf[1] = i[1];
+  buf[2] = i[2];
+}
+
+inline void uint40_to_uint8_mod(uint8_t i[5], uint8_t* buf){
+  buf[0] = i[0];
+  buf[1] = i[1];
+  buf[2] = i[2];
+  buf[3] = i[3];
+  buf[4] = i[4];
+}
+
 } // namespace srslte
 #endif // SRSLTE_INT_HELPERS_H
