@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef SRSLTE_SYNC_H
-#define SRSLTE_SYNC_H
+#ifndef SRSLTE_SYNC_PROTOCOL_H
+#define SRSLTE_SYNC_PROTOCOL_H
 
 #include <stdint.h>
 //#include <boost/intrusive/list.hpp>
@@ -218,4 +218,4 @@ inline bool sync_header_pdu_type_check(sync_common_header_type_t* header, srslte
 
 } // namespace srslte
 
-#endif // SRSLTE_SYNC_H
+#endif // SRSLTE_SYNC_PROTOCOL_H

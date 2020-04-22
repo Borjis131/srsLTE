@@ -18,7 +18,8 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-set(SOURCES gtpu.cc
+set(SOURCES sync.cc
+            gtpu.cc
             pdcp.cc
             pdcp_entity_base.cc
             pdcp_entity_lte.cc

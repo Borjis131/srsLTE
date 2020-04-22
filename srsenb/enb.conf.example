@@ -41,9 +41,9 @@ n_prb = 50
 # drb_config:  DRB configuration file 
 #####################################################################
 [enb_files]
-sib_config = sib.conf
-rr_config  = rr.conf
-drb_config = drb.conf
+sib_config = sib.conf.example
+rr_config  = rr.conf.example
+drb_config = drb.conf.example
 
 #####################################################################
 # RF configuration

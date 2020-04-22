@@ -267,6 +267,8 @@ void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
   uint8_t               version;
   srslte::gtpu_header_t header;
 
+  // Setup SYNC header
+
   // Setup GTP-U header
   header.flags        = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL;
   header.message_type = GTPU_MSG_DATA_PDU;
