@@ -286,6 +286,8 @@ void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
     return;
   }
 
+  // Write SYNC header into packet
+
   // Write GTP-U header into packet
   if (!srslte::gtpu_write_header(&header, msg, m_mbms_gw_log)) {
     m_mbms_gw_log->console("Error writing GTP-U header on PDU\n");

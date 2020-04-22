@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Universidad Politecnica de Valencia
+ * Copyright 2020 Universitat Politecnica de Valencia
  *
  * This file is part of srsLTE.
  *
@@ -200,11 +200,11 @@ typedef struct: sync_common_header_type_t {
 
 bool sync_write_header_type0(sync_header_type0_t* header, srslte::byte_buffer_t* pdu, srslte::log* sync_log);
 bool sync_write_header_type1(sync_header_type1_t* header, srslte::byte_buffer_t* pdu, srslte::log* sync_log);
-/*bool sync_write_header_type3(sync_header_type3_t* header, srslte::byte_buffer_t* pdu, srslte::log* sync_log);
+bool sync_write_header_type3(sync_header_type3_t* header, srslte::byte_buffer_t* pdu, srslte::log* sync_log);
 
 bool sync_read_header_type0(srslte::byte_buffer_t* pdu, sync_header_type0_t* header, srslte::log* sync_log);
 bool sync_read_header_type1(srslte::byte_buffer_t* pdu, sync_header_type1_t* header, srslte::log* sync_log);
-bool sync_read_header_type3(srslte::byte_buffer_t* pdu, sync_header_type3_t* header, srslte::log* sync_log);*/
+bool sync_read_header_type3(srslte::byte_buffer_t* pdu, sync_header_type3_t* header, srslte::log* sync_log);
 
 inline bool sync_header_pdu_type_check(sync_common_header_type_t* header, srslte::log* sync_log){
     if((header->pdu_type & SYNC_PDU_TYPE_MASK) != SYNC_PDU_TYPE_0 && 
