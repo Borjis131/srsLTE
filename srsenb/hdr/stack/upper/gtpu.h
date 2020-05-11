@@ -29,6 +29,8 @@
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/srslte.h"
 
+//#include "srsenb/hdr/stack/upper/sync_queue.h"
+
 #ifndef SRSENB_GTPU_H
 #define SRSENB_GTPU_H
 
@@ -92,6 +94,7 @@ private:
     srslte::log*         gtpu_log = nullptr;
     std::string          m1u_multiaddr;
     std::string          m1u_if_addr;
+    //sync_queue<srslte::sync_header_type1_t> queue;
 
     bool initiated    = false;
     int  m1u_sd       = -1;

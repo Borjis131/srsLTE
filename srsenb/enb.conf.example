@@ -41,7 +41,7 @@ n_prb = 50
 # drb_config:  DRB configuration file 
 #####################################################################
 [enb_files]
-sib_config = sib.conf.example
+sib_config = sib.conf.mbsfn.example
 rr_config  = rr.conf.example
 drb_config = drb.conf.example
 
@@ -125,7 +125,7 @@ filename = /tmp/enb.pcap
 #                If set to negative, a single log file will be created.
 #####################################################################
 [log]
-all_level = warning
+all_level = debug
 all_hex_limit = 32
 filename = /tmp/enb.log
 file_max_size = -1
@@ -150,7 +150,8 @@ enable = false
 #pdsch_max_mcs    = -1
 #pusch_mcs        = -1
 pusch_max_mcs    = 16
-nof_ctrl_symbols = 3
+#nof_ctrl_symbols = 3
+nof_ctrl_symbols = 2
 
 #####################################################################
 # eMBMS configuration options
@@ -164,7 +165,9 @@ nof_ctrl_symbols = 3
 #enable = false
 #m1u_multiaddr = 239.255.0.1
 #m1u_if_addr = 127.0.1.201
-
+enable = true
+m1u_multiaddr = 239.255.0.1
+m1u_if_addr = 127.0.1.201
 
 
 #####################################################################
@@ -267,6 +270,7 @@ nof_ctrl_symbols = 3
 #pusch_max_its        = 8 # These are half iterations
 #pusch_8bit_decoder   = false
 #nof_phy_threads      = 3
+nof_phy_threads      = 2
 #metrics_period_secs  = 1
 #metrics_csv_enable   = false
 #metrics_csv_filename = /tmp/enb_metrics.csv

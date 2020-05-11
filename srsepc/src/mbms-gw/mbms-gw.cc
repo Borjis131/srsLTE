@@ -32,6 +32,8 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 
+#include "srslte/upper/sync.h"
+
 namespace srsepc {
 
 mbms_gw*        mbms_gw::m_instance    = NULL;
@@ -265,9 +267,15 @@ void mbms_gw::run_thread()
 void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
 {
   uint8_t               version;
+  srslte::sync_header_type1_t sync_header;
   srslte::gtpu_header_t header;
-
+  
   // Setup SYNC header
+  sync_header.pdu_type = srslte::SYNC_PDU_TYPE_1;
+  sync_header.timestamp = 1;
+  sync_header.packet_number = 2;
+  sync_header.elapsed_octet_counter = 3;
+  sync_header.crc = 4; // Header and payload CRC
 
   // Setup GTP-U header
   header.flags        = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL;
@@ -287,8 +295,11 @@ void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
     m_mbms_gw_log->warning("IPv6 not supported yet.\n");
     return;
   }
-
+  /*
   // Write SYNC header into packet
+  if(!srslte::sync_write_header_type1(&sync_header, msg, m_mbms_gw_log)){
+    m_mbms_gw_log->console("Error writing SYNC header on PDU\n");
+  }*/
 
   // Write GTP-U header into packet
   if (!srslte::gtpu_write_header(&header, msg, m_mbms_gw_log)) {
@@ -300,6 +311,7 @@ void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
     m_mbms_gw_log->console("Error writing to M1-U socket.\n");
   } else {
     m_mbms_gw_log->debug("Sent %d Bytes\n", msg->N_bytes);
+    //m_mbms_gw_log->debug_hex(msg->msg, msg->N_bytes, "\n");
   }
 }
 

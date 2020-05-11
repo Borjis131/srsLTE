@@ -23,7 +23,7 @@
 #define SRSLTE_SYNC_PROTOCOL_H
 
 #include <stdint.h>
-//#include <boost/intrusive/list.hpp>
+#include <boost/intrusive/list.hpp>
 
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
@@ -55,12 +55,13 @@ const uint8_t SYNC_HEADER_TYPE_3_LEN_BYTES = 19;
  * 9      |Elapsed Octet Counter (4th Oct)|
  ***************************************************************************/
 
-struct sync_common_header_type_t /*: public boost::intrusive::list_base_hook<> */{
+struct sync_common_header_type_t: public boost::intrusive::list_base_hook<>{
     uint8_t pdu_type; // Needs 4 bits only
     uint16_t timestamp;
     uint16_t packet_number;
     uint32_t elapsed_octet_counter;
-    /*
+    
+    
     uint16_t get_timestamp(){
         return timestamp;
     }
@@ -77,7 +78,7 @@ struct sync_common_header_type_t /*: public boost::intrusive::list_base_hook<> *
                 return false;
             }
         }
-    }*/
+    }
 };
 
 /****************************************************************************

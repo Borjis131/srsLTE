@@ -27,6 +27,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include "srslte/upper/sync.h"
+
 using namespace srslte;
 namespace srsenb {
 
@@ -306,6 +308,7 @@ bool gtpu::m1u_handler::init(std::string m1u_multiaddr_, std::string m1u_if_addr
   bindaddr.sin_family      = AF_INET;
   bindaddr.sin_addr.s_addr = htonl(INADDR_ANY); // Multicast sockets require bind to INADDR_ANY
   bindaddr.sin_port        = htons(GTPU_PORT + 1);
+
   if (bind(m1u_sd, (struct sockaddr*)&bindaddr, sizeof(bindaddr)) < 0) {
     gtpu_log->error("Failed to bind multicast socket\n");
     return false;
@@ -338,6 +341,12 @@ void gtpu::m1u_handler::handle_rx_packet(srslte::unique_byte_buffer_t pdu, const
 
   gtpu_header_t header;
   gtpu_read_header(pdu.get(), &header, gtpu_log);
+
+  // Workaround to uncapsulate SYNC packets
+  /*
+  sync_header_type1_t sync_header;
+  sync_read_header_type1(pdu.get(), &sync_header, gtpu_log);*/
+
   pdcp->write_sdu(SRSLTE_MRNTI, lcid_counter, std::move(pdu));
 }
 
