@@ -61,21 +61,32 @@ public:
     void push(Data &data){
         pthread_mutex_lock(&mutex);
         queue.push_back(data);
-        std::cout << "Pushed element\n";
-        //std::cout << "timestamp: " << data.get_timestamp() << "\n";
-        //std::cout << "Element pushed: " << data << "\n";
-        sort();
+        //std::cout << "Pushed element\n";
+        usort();
         pthread_cond_signal(&cv_has_data);
         pthread_mutex_unlock(&mutex);
     }
 
     /*
+     * usort():
+     * sorts the list according to std::less()
+     * not thread-safe
+     */
+    void usort(){
+        queue.sort();
+        //std::cout << "Queue sorted\n";
+    }
+
+    /*
      * sort():
-     * sorts the list according to timestamp
+     * sorts the list according to std::less()
+     * thread-safe
      */
     void sort(){
+        pthread_mutex_lock(&mutex);
         queue.sort();
-        std::cout << "Queue sorted\n";
+        pthread_mutex_unlock(&mutex);
+        //std::cout << "Queue sorted\n";
     }
 
     /*
@@ -97,13 +108,13 @@ public:
     bool try_pop(Data &popped_value){
         pthread_mutex_lock(&mutex);
         if(queue.empty()){
-            std::cout << "Queue has no elements\n";
+            //std::cout << "Queue has no elements\n";
             pthread_mutex_unlock(&mutex);
             return false;
         }
         popped_value = queue.front();
         queue.pop_front();
-        std::cout << "Popped element: " << popped_value << "\n";
+        //std::cout << "Popped element: " << popped_value << "\n";
         pthread_mutex_unlock(&mutex);
         return true;
     }
@@ -119,9 +130,6 @@ public:
             pthread_cond_wait(&cv_has_data, &mutex);
         }
         popped_value = queue.front();
-        std::cout << "popping: " << unsigned(popped_value.pdu_type) << "\n";
-        //std::cout << "timestamp: " << popped_value.get_timestamp() << "\n";
-
         queue.pop_front();
         //std::cout << "Popped element: " << popped_value << "\n";
         pthread_mutex_unlock(&mutex);
@@ -130,41 +138,28 @@ public:
     /*
      * wait_time_and_pop():
      * waits the time specified and pops one element 
-     * from the queue, waiting if the queue is empty
+     * from the queue. Running in continuous loop.
      */
-    void wait_time_and_pop(Data &popped_value, bool running){
+    void wait_time_and_pop(Data &popped_value){
         //std::cout << "SYNC consumer started\n";
         // TODO: Continuous loop, tear down when eNB running flag is false
-        while(running){
+        while(true){
             pthread_mutex_lock(&mutex);
             uint32_t num_of_checks = max_check_intervals; // Default 4
             while(queue.empty()){
-                pthread_cond_wait(&cv_has_data, &mutex); // Wait for the conditional lock in push function
+                pthread_cond_wait(&cv_has_data, &mutex); // Wait for the conditional variable in push function
             }
 
-            //boost::chrono::system_clock::time_point pop_time = perform_checks(popped_value, num_of_checks);
             timespec pop_time = perform_checks(popped_value, num_of_checks);
-
-            //std::cout << "Popped element: " << popped_value << " at: " << pop_time - boost::chrono::system_clock::now() << "\n";
-
-            // Compensate delay by substracting - boost::chrono::nanoseconds(100000) to pop_time
-            //boost::this_thread::sleep_until(pop_time - boost::chrono::nanoseconds(100000));
-
-            /*
-            timespec now;
-            clock_gettime(CLOCK_MONOTONIC, &now);
-            pop_time.tv_sec = pop_time.tv_sec - now.tv_sec;
-            pop_time.tv_nsec = pop_time.tv_nsec - now.tv_nsec;*/
 
             clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &pop_time, (timespec *)NULL);
             //nanosleep(&pop_time, (timespec *)NULL);
 
             timespec now;
             clock_gettime(CLOCK_MONOTONIC, &now);
-            std::cout << "Popped element: " << popped_value << " at: " << pop_time.tv_nsec - now.tv_nsec << "\n";
+            //std::cout << "Popped element: " << popped_value << " at: " << pop_time.tv_nsec - now.tv_nsec << "\n";
             queue.pop_front();
 
-            //std::cout << "Popped element: " << popped_value << " at: " << pop_time - boost::chrono::system_clock::now() << "\n";
             pthread_mutex_unlock(&mutex);
         }
     }
@@ -182,8 +177,8 @@ public:
 
         timespec wait_time = ts_difftime(pop_time, now);
 
-        if(wait_time.tv_sec == 0 && (wait_time.tv_nsec - 500000L < 0L)){ // Adjusts minimum time to perform several checks
-            std::cout << "First if: Time to wait is less than 0.5ms, popping inmediatly\n";
+        if(wait_time.tv_sec < 0 || (wait_time.tv_sec <= 0 && (wait_time.tv_nsec - 500000L < 0L))){ // Adjusts minimum time to perform several checks
+            //std::cout << "First if: Time to wait is less than 0.5ms, popping inmediatly\n";
             return pop_time;
         }
 
@@ -191,34 +186,27 @@ public:
         wait_interval.tv_sec = wait_time.tv_sec / num_of_checks;
         wait_interval.tv_nsec = wait_time.tv_nsec / num_of_checks;
 
-        std::cout << "Wait interval: " << wait_time.tv_sec << ":" << wait_time.tv_nsec << " to pop -> " << popped_value << "\n";
+        //std::cout << "Wait interval: " << wait_interval.tv_sec << ":" << wait_interval.tv_nsec << " to pop -> " << popped_value << "\n";
         while(num_of_checks > 1){
             pthread_mutex_unlock(&mutex);
-            std::cout << "Checking: " << num_of_checks << "\n";
-            //boost::this_thread::sleep_for(wait_interval);
+            //std::cout << "Checking: " << num_of_checks << "\n";
+
             nanosleep(&wait_interval, (timespec *)NULL);
-            //boost::this_thread::sleep_until(pop_time - (wait_interval*(num_of_checks-1)));
 
             pthread_mutex_lock(&mutex);
-
-            //wait_time = pop_time - boost::chrono::system_clock::now();
-            /*
-            clock_gettime(CLOCK_MONOTONIC, &now);
-            wait_time.tv_sec = pop_time.tv_sec - now.tv_sec;
-            wait_time.tv_nsec = pop_time.tv_nsec - now.tv_nsec;*/
             
             wait_time = ts_difftime(wait_time, wait_interval);
 
-            std::cout << "Time remaining: " << wait_time.tv_sec << ":" << wait_time.tv_nsec << "\n";
-            if(wait_time.tv_sec == 0 && (wait_time.tv_nsec - 500000L < 0L)){ // Adjusts minimum time to perform several checks
-                std::cout << "Second if: Time to wait is less than 0.5ms, popping inmediatly\n";
+            //std::cout << "Time remaining: " << wait_time.tv_sec << ":" << wait_time.tv_nsec << "\n";
+            if(wait_time.tv_sec < 0 || (wait_time.tv_sec <= 0 && (wait_time.tv_nsec - 500000L < 0L))){ // Adjusts minimum time to perform several checks
+                //std::cout << "Second if: Time to wait is less than 0.5ms, popping inmediatly\n";
                 return pop_time;
             }
 
             num_of_checks--;
 
             if(popped_value != queue.front()){ // If the current value to pop is not the front of the queue (reordering)
-                std::cout << "Value to pop is not the front of the queue\n";
+                //std::cout << "Value to pop is not the front of the queue\n";
                 return perform_checks(popped_value, num_of_checks);
             }
         }
