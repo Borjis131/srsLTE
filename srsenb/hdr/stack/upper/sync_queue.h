@@ -24,9 +24,8 @@
 
 #include <iostream>
 #include <boost/intrusive/list.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/condition_variable.hpp>
-#include <boost/chrono.hpp>
+#include <pthread.h>
+#include <time.h>
 
 #include "srslte/upper/sync.h"
 
@@ -38,31 +37,36 @@
  * problems with templates.
  * ********************************************/
 
-template<typename Data>
+template <typename Data>
 class sync_queue{
 
 private:
     boost::intrusive::list<Data, boost::intrusive::constant_time_size<false>> queue;
-    mutable boost::mutex mutex;
-    boost::condition_variable has_data;
-    uint32_t max_check_intervals = 4; // Performs max_check_intervals-1 "normal" checks and waits for the last
+    pthread_mutex_t mutex;
+    pthread_cond_t cv_has_data;
+    uint32_t max_check_intervals;
 
 public:
+    explicit sync_queue<Data>(int checks_ = 4){
+        pthread_mutex_init(&mutex, NULL);
+        pthread_cond_init(&cv_has_data, NULL);
+        max_check_intervals = checks_;
+    }
 
     /*
      * push():
      * pushes the data and sorts the queue
      * notifies the waiting thread
      */
-    void push(Data& data){
-        boost::mutex::scoped_lock lock(mutex);
+    void push(Data &data){
+        pthread_mutex_lock(&mutex);
         queue.push_back(data);
-        std::cout << "pushing address: " << &data << "\n";
-        std::cout << "timestamp: " << data.get_timestamp() << "\n";
+        std::cout << "Pushed element\n";
+        //std::cout << "timestamp: " << data.get_timestamp() << "\n";
         //std::cout << "Element pushed: " << data << "\n";
         sort();
-        lock.unlock(); // unlocks the mutex
-        has_data.notify_one();
+        pthread_cond_signal(&cv_has_data);
+        pthread_mutex_unlock(&mutex);
     }
 
     /*
@@ -79,8 +83,10 @@ public:
      * returns true queue is empty
      */
     bool empty() const{
-        boost::mutex::scoped_lock lock(mutex);
-        return queue.empty();
+        pthread_mutex_lock(&mutex);
+        bool ret = queue.empty();
+        pthread_mutex_unlock(&mutex);
+        return ret;
     }
 
     /*
@@ -88,15 +94,17 @@ public:
      * tries to pop one element if queue its
      * not empty
      */
-    bool try_pop(Data& popped_value){
-        boost::mutex::scoped_lock lock(mutex);
+    bool try_pop(Data &popped_value){
+        pthread_mutex_lock(&mutex);
         if(queue.empty()){
             std::cout << "Queue has no elements\n";
+            pthread_mutex_unlock(&mutex);
             return false;
         }
-        popped_value=queue.front();
+        popped_value = queue.front();
         queue.pop_front();
         std::cout << "Popped element: " << popped_value << "\n";
+        pthread_mutex_unlock(&mutex);
         return true;
     }
 
@@ -105,18 +113,18 @@ public:
      * pops one element from the queue, waiting
      * if the queue is empty
      */
-    void wait_and_pop(Data& popped_value){
-        boost::mutex::scoped_lock lock(mutex);
+    void wait_and_pop(Data &popped_value){
+        pthread_mutex_lock(&mutex);
         while(queue.empty()){
-            has_data.wait(lock);
+            pthread_cond_wait(&cv_has_data, &mutex);
         }
         popped_value = queue.front();
-        std::cout << "popping address: " << &popped_value << "\n";
         std::cout << "popping: " << unsigned(popped_value.pdu_type) << "\n";
-        std::cout << "timestamp: " << popped_value.get_timestamp() << "\n";
-        
+        //std::cout << "timestamp: " << popped_value.get_timestamp() << "\n";
+
         queue.pop_front();
         //std::cout << "Popped element: " << popped_value << "\n";
+        pthread_mutex_unlock(&mutex);
     }
 
     /*
@@ -124,26 +132,40 @@ public:
      * waits the time specified and pops one element 
      * from the queue, waiting if the queue is empty
      */
-    void wait_time_and_pop(Data& popped_value, bool running){
-        std::cout << "SYNC consumer started\n";
+    void wait_time_and_pop(Data &popped_value, bool running){
+        //std::cout << "SYNC consumer started\n";
         // TODO: Continuous loop, tear down when eNB running flag is false
         while(running){
-            boost::mutex::scoped_lock lock(mutex);
+            pthread_mutex_lock(&mutex);
             uint32_t num_of_checks = max_check_intervals; // Default 4
             while(queue.empty()){
-                has_data.wait(lock); // Wait for the conditional lock in push function
+                pthread_cond_wait(&cv_has_data, &mutex); // Wait for the conditional lock in push function
             }
-            
-            boost::chrono::system_clock::time_point pop_time = perform_checks(popped_value, num_of_checks);
-            
+
+            //boost::chrono::system_clock::time_point pop_time = perform_checks(popped_value, num_of_checks);
+            timespec pop_time = perform_checks(popped_value, num_of_checks);
+
             //std::cout << "Popped element: " << popped_value << " at: " << pop_time - boost::chrono::system_clock::now() << "\n";
 
             // Compensate delay by substracting - boost::chrono::nanoseconds(100000) to pop_time
+            //boost::this_thread::sleep_until(pop_time - boost::chrono::nanoseconds(100000));
 
-            boost::this_thread::sleep_until(pop_time - boost::chrono::nanoseconds(100000));
-            std::cout << "Popped element: " << popped_value << " at: " << pop_time - boost::chrono::system_clock::now() << "\n";
+            /*
+            timespec now;
+            clock_gettime(CLOCK_MONOTONIC, &now);
+            pop_time.tv_sec = pop_time.tv_sec - now.tv_sec;
+            pop_time.tv_nsec = pop_time.tv_nsec - now.tv_nsec;*/
+
+            clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &pop_time, (timespec *)NULL);
+            //nanosleep(&pop_time, (timespec *)NULL);
+
+            timespec now;
+            clock_gettime(CLOCK_MONOTONIC, &now);
+            std::cout << "Popped element: " << popped_value << " at: " << pop_time.tv_nsec - now.tv_nsec << "\n";
             queue.pop_front();
+
             //std::cout << "Popped element: " << popped_value << " at: " << pop_time - boost::chrono::system_clock::now() << "\n";
+            pthread_mutex_unlock(&mutex);
         }
     }
     /*
@@ -152,32 +174,43 @@ public:
     * to be delivered. Checks the queue to see if new packets need 
     * to be delivered previously.
     */
-    boost::chrono::system_clock::time_point perform_checks(Data& popped_value, int num_of_checks){
+    timespec perform_checks(Data &popped_value, int num_of_checks){
         popped_value = queue.front(); // Check front of the queue
-        boost::chrono::system_clock::time_point pop_time = popped_value.get_timestamp();
-        boost::chrono::system_clock::duration wait_time = pop_time - boost::chrono::system_clock::now();
+        timespec pop_time = popped_value.get_timestamp();
+        timespec now;
+        clock_gettime(CLOCK_MONOTONIC, &now);
 
-        if(wait_time - boost::chrono::nanoseconds(500000) < boost::chrono::nanoseconds(0)){ // Adjusts minimum time to perform several checks
+        timespec wait_time = ts_difftime(pop_time, now);
+
+        if(wait_time.tv_sec == 0 && (wait_time.tv_nsec - 500000L < 0L)){ // Adjusts minimum time to perform several checks
             std::cout << "First if: Time to wait is less than 0.5ms, popping inmediatly\n";
             return pop_time;
         }
 
-        boost::chrono::system_clock::duration wait_interval = wait_time/num_of_checks;
+        timespec wait_interval;
+        wait_interval.tv_sec = wait_time.tv_sec / num_of_checks;
+        wait_interval.tv_nsec = wait_time.tv_nsec / num_of_checks;
 
-        std::cout << "Time to wait: " << wait_time << " to pop: "<< popped_value << "\n";
+        std::cout << "Wait interval: " << wait_time.tv_sec << ":" << wait_time.tv_nsec << " to pop -> " << popped_value << "\n";
         while(num_of_checks > 1){
-            mutex.unlock();
+            pthread_mutex_unlock(&mutex);
             std::cout << "Checking: " << num_of_checks << "\n";
+            //boost::this_thread::sleep_for(wait_interval);
+            nanosleep(&wait_interval, (timespec *)NULL);
+            //boost::this_thread::sleep_until(pop_time - (wait_interval*(num_of_checks-1)));
 
-            // boost::this_thread::sleep_for(wait_interval);
-            
-            boost::this_thread::sleep_until(pop_time - (wait_interval*(num_of_checks-1)));
-            
-            mutex.lock();
+            pthread_mutex_lock(&mutex);
 
-            wait_time = pop_time - boost::chrono::system_clock::now();
-            std::cout << "Time remaining: " << wait_time << "\n";
-            if(wait_time - boost::chrono::nanoseconds(500000) < boost::chrono::nanoseconds(0)){ // Adjusts minimum time to perform several checks
+            //wait_time = pop_time - boost::chrono::system_clock::now();
+            /*
+            clock_gettime(CLOCK_MONOTONIC, &now);
+            wait_time.tv_sec = pop_time.tv_sec - now.tv_sec;
+            wait_time.tv_nsec = pop_time.tv_nsec - now.tv_nsec;*/
+            
+            wait_time = ts_difftime(wait_time, wait_interval);
+
+            std::cout << "Time remaining: " << wait_time.tv_sec << ":" << wait_time.tv_nsec << "\n";
+            if(wait_time.tv_sec == 0 && (wait_time.tv_nsec - 500000L < 0L)){ // Adjusts minimum time to perform several checks
                 std::cout << "Second if: Time to wait is less than 0.5ms, popping inmediatly\n";
                 return pop_time;
             }
@@ -190,6 +223,24 @@ public:
             }
         }
         return pop_time;
+    }
+
+    timespec ts_difftime(timespec x, timespec y){
+        timespec result;
+        if(x.tv_nsec < y.tv_nsec){
+            long seconds = (y.tv_nsec - x.tv_nsec) / 1000000000 + 1;
+            y.tv_nsec -= 1000000000 * seconds;
+            y.tv_sec += seconds;
+        } if(x.tv_nsec - y.tv_nsec > 1000000000){
+            int seconds = (x.tv_nsec - y.tv_nsec) / 1000000000;
+            y.tv_nsec += 1000000000 * seconds;
+            y.tv_sec -= seconds;
+        }
+        /* Compute the time remaining to wait. tv_nsec is certainly positive. */
+        result.tv_sec = x.tv_sec - y.tv_sec;
+        result.tv_nsec = x.tv_nsec - y.tv_nsec;
+
+        return result;
     }
 };
 
