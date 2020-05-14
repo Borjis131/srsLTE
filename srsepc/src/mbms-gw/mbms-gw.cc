@@ -295,11 +295,11 @@ void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
     m_mbms_gw_log->warning("IPv6 not supported yet.\n");
     return;
   }
-  /*
+  
   // Write SYNC header into packet
   if(!srslte::sync_write_header_type1(&sync_header, msg, m_mbms_gw_log)){
     m_mbms_gw_log->console("Error writing SYNC header on PDU\n");
-  }*/
+  }
 
   // Write GTP-U header into packet
   if (!srslte::gtpu_write_header(&header, msg, m_mbms_gw_log)) {
