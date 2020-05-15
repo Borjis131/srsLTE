@@ -55,13 +55,13 @@ const uint8_t SYNC_HEADER_TYPE_3_LEN_BYTES = 19;
  * 9      |Elapsed Octet Counter (4th Oct)|
  ***************************************************************************/
 
-struct sync_common_header_type_t: public boost::intrusive::list_base_hook<>{
+struct sync_common_header_type_t/*: public boost::intrusive::list_base_hook<>*/{
     uint8_t pdu_type; // Needs 4 bits only
     uint16_t timestamp;
     uint16_t packet_number;
     uint32_t elapsed_octet_counter;
     
-    
+    /*
     uint16_t get_timestamp(){
         return timestamp;
     }
@@ -78,7 +78,7 @@ struct sync_common_header_type_t: public boost::intrusive::list_base_hook<>{
                 return false;
             }
         }
-    }
+    }*/
 };
 
 /****************************************************************************
@@ -198,6 +198,29 @@ typedef struct: sync_common_header_type_t {
     uint8_t total_number_of_octet[5];
     uint16_t crc; // Header and Payload CRC
 } sync_header_type3_t;
+
+struct sync_packet_t: public boost::intrusive::list_base_hook<> {
+    sync_header_type1_t header;
+    srslte::byte_buffer_t* payload;
+    
+    uint16_t get_timestamp(){
+        return header.timestamp;
+    }
+
+    bool operator<(const sync_packet_t& r) const{
+        if(header.timestamp < r.header.timestamp){
+            return true;
+        } else if (header.timestamp > r.header.timestamp){
+            return false;
+        } else { // Same timestamp
+            if(header.packet_number < r.header.packet_number){
+                return true;
+            } else { // l.packet_number > r.packet_number
+                return false;
+            }
+        }
+    }
+};
 
 bool sync_write_header_type0(sync_header_type0_t* header, srslte::byte_buffer_t* pdu, srslte::log* sync_log);
 bool sync_write_header_type1(sync_header_type1_t* header, srslte::byte_buffer_t* pdu, srslte::log* sync_log);

@@ -94,7 +94,7 @@ private:
     srslte::log*         gtpu_log = nullptr;
     std::string          m1u_multiaddr;
     std::string          m1u_if_addr;
-    sync_queue<srslte::sync_header_type1_t> queue;
+    sync_queue<srslte::sync_packet_t> queue;
 
     bool initiated    = false;
     int  m1u_sd       = -1;

@@ -27,6 +27,7 @@
 #include <pthread.h>
 #include <time.h>
 
+#include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/upper/sync.h"
 
 /***********************************************
@@ -45,12 +46,14 @@ private:
     pthread_mutex_t mutex;
     pthread_cond_t cv_has_data;
     uint32_t max_check_intervals;
+    srsenb::pdcp_interface_gtpu* pdcp = nullptr;
 
 public:
-    explicit sync_queue<Data>(int checks_ = 4){
+    explicit sync_queue<Data>(srsenb::pdcp_interface_gtpu* pdcp_, int checks_ = 4){
         pthread_mutex_init(&mutex, NULL);
         pthread_cond_init(&cv_has_data, NULL);
         max_check_intervals = checks_;
+        pdcp = pdcp_;
     }
 
     /*
@@ -105,7 +108,7 @@ public:
      * tries to pop one element if queue its
      * not empty
      */
-    bool try_pop(Data &popped_value){
+    bool try_pop(Data &popped_value, int lcid_counter){
         pthread_mutex_lock(&mutex);
         if(queue.empty()){
             //std::cout << "Queue has no elements\n";
@@ -116,6 +119,8 @@ public:
         queue.pop_front();
         //std::cout << "Popped element: " << popped_value << "\n";
         pthread_mutex_unlock(&mutex);
+        // Check how to access to payload right here
+        pdcp->write_sdu(0xFFFD, lcid_counter, std::move(popped_value.payload));
         return true;
     }
 
