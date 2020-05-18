@@ -295,7 +295,7 @@ bool gtpu::m1u_handler::init(std::string m1u_multiaddr_, std::string m1u_if_addr
   m1u_if_addr   = std::move(m1u_if_addr_);
   pdcp          = parent->pdcp;
   gtpu_log      = parent->gtpu_log;
-  //queue = sync_queue<srslte::sync_packet_t>(4);
+  queue = sync_queue<srslte::sync_packet_t>(pdcp, 4);
 
   // Set up sink socket
   struct sockaddr_in bindaddr = {};
@@ -347,14 +347,15 @@ void gtpu::m1u_handler::handle_rx_packet(srslte::unique_byte_buffer_t pdu, const
   sync_header_type1_t sync_header;
   sync_read_header_type1(pdu.get(), &sync_header, gtpu_log);
 
-  sync_packet_t sync_packet;
+  sync_packet_t sync_packet = {};
   sync_packet.header = sync_header;
-  sync_packet.payload = pdu.get();
+  sync_packet.payload = std::move(pdu);
 
   queue.push(sync_packet);
-  queue.try_pop(sync_packet);
+  queue.try_pop(sync_packet, lcid_counter);
 
-  pdcp->write_sdu(SRSLTE_MRNTI, lcid_counter, std::move(pdu));
+  //pdcp->write_sdu(SRSLTE_MRNTI, lcid_counter, std::move(pdu));
+  //pdcp->write_sdu(SRSLTE_MRNTI, lcid_counter, std::move(sync_packet.payload));
 }
 
 } // namespace srsenb

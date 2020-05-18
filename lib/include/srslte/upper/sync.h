@@ -201,7 +201,8 @@ typedef struct: sync_common_header_type_t {
 
 struct sync_packet_t: public boost::intrusive::list_base_hook<> {
     sync_header_type1_t header;
-    srslte::byte_buffer_t* payload;
+    //srslte::byte_buffer_t* payload;
+    srslte::unique_byte_buffer_t payload;
     
     uint16_t get_timestamp(){
         return header.timestamp;
@@ -221,6 +222,16 @@ struct sync_packet_t: public boost::intrusive::list_base_hook<> {
         }
     }
 };
+/*
+bool operator== (const sync_packet_t& l, const sync_packet_t& r){
+    if(l.header.timestamp == r.header.timestamp && l.header.packet_number == r.header.packet_number){
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool operator!= (const sync_packet_t& l, const sync_packet_t& r){ return !(l == r); }*/
 
 bool sync_write_header_type0(sync_header_type0_t* header, srslte::byte_buffer_t* pdu, srslte::log* sync_log);
 bool sync_write_header_type1(sync_header_type1_t* header, srslte::byte_buffer_t* pdu, srslte::log* sync_log);

@@ -56,6 +56,13 @@ public:
         pdcp = pdcp_;
     }
 
+    sync_queue<Data>(){
+        pthread_mutex_init(&mutex, NULL);
+        pthread_cond_init(&cv_has_data, NULL);
+        max_check_intervals = 0;
+        pdcp = nullptr;
+    }
+
     /*
      * push():
      * pushes the data and sorts the queue
@@ -115,10 +122,11 @@ public:
             pthread_mutex_unlock(&mutex);
             return false;
         }
-        popped_value = queue.front();
+        popped_value = std::move(queue.front());
         queue.pop_front();
         //std::cout << "Popped element: " << popped_value << "\n";
         pthread_mutex_unlock(&mutex);
+
         // Check how to access to payload right here
         pdcp->write_sdu(0xFFFD, lcid_counter, std::move(popped_value.payload));
         return true;
@@ -134,7 +142,7 @@ public:
         while(queue.empty()){
             pthread_cond_wait(&cv_has_data, &mutex);
         }
-        popped_value = queue.front();
+        popped_value = std::cout(queue.front());
         queue.pop_front();
         //std::cout << "Popped element: " << popped_value << "\n";
         pthread_mutex_unlock(&mutex);
@@ -175,6 +183,7 @@ public:
     * to be delivered previously.
     */
     timespec perform_checks(Data &popped_value, int num_of_checks){
+        //popped_value = std::move(queue.front()); ??
         popped_value = queue.front(); // Check front of the queue
         timespec pop_time = popped_value.get_timestamp();
         timespec now;
@@ -218,6 +227,11 @@ public:
         return pop_time;
     }
 
+    /*
+    * ts_difftime():
+    * subtract timespec y to timespec x
+    * returns the difference
+    */
     timespec ts_difftime(timespec x, timespec y){
         timespec result;
         if(x.tv_nsec < y.tv_nsec){
@@ -234,6 +248,24 @@ public:
         result.tv_nsec = x.tv_nsec - y.tv_nsec;
 
         return result;
+    }
+    
+    /*
+    * uint16_to_timespec():
+    * turns uint16_t timestamp into timespec
+    * timestamp value represent multiples of 10 ms
+    */
+    timespec uint16_to_timespec(uint16_t timestamp){
+        timespec conversion;
+        // timestamp * 10 = milliseconds
+        if(timestamp >= 100){
+            conversion.tv_nsec = (timestamp%100)*10000000;
+            conversion.tv_sec = timestamp/100;
+        } else {
+            conversion.tv_nsec = timestamp*10000000;
+            conversion.tv_sec = 0;
+        }
+        return conversion;
     }
 };
 
