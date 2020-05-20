@@ -37,6 +37,8 @@
 #include "srsenb/hdr/metrics_csv.h"
 #include "srsenb/hdr/metrics_stdout.h"
 
+#include "srsenb/hdr/stack/upper/sync_queue.h"
+
 using namespace std;
 using namespace srsenb;
 namespace bpo = boost::program_options;
@@ -456,6 +458,13 @@ int main(int argc, char* argv[])
   // create input thread
   pthread_t input;
   pthread_create(&input, NULL, &input_loop, &metrics_screen);
+
+  /*
+
+  Create pthread here or in enb.cc and pass queue to gtpu code
+
+  pthread_t sync_consumer;
+  pthread_create(&sync_consumer, NULL, &sync_queue<srslte::sync_packet_t>::pthread_wrapper, (void*) &queue);*/
 
   bool signals_pregenerated = false;
   if (running) {

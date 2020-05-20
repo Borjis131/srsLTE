@@ -1,0 +1,35 @@
+--- command='srsenb enb.conf.example' version=19.12.0 signal=11 date='19/05/2020 10:21:07' ---
+	srsenb(+0x1008d8) [0x55ca69b598d8]
+	/lib/x86_64-linux-gnu/libc.so.6(+0x3ef20) [0x7fdc65f7cf20]
+	srsenb(+0x83edd) [0x55ca69adcedd]
+	srsenb(+0x841a9) [0x55ca69add1a9]
+	/lib/x86_64-linux-gnu/libpthread.so.0(+0x76db) [0x7fdc67ef86db]
+	/lib/x86_64-linux-gnu/libc.so.6(clone+0x3f) [0x7fdc6605f88f]
+
+--- command='srsenb enb.conf.example' version=19.12.0 signal=6 date='19/05/2020 10:21:07' ---
+	srsenb(+0x1008d8) [0x55ca69b598d8]
+	/lib/x86_64-linux-gnu/libc.so.6(+0x3ef20) [0x7fdc65f7cf20]
+	/lib/x86_64-linux-gnu/libc.so.6(gsignal+0xc7) [0x7fdc65f7ce97]
+	/lib/x86_64-linux-gnu/libc.so.6(abort+0x141) [0x7fdc65f7e801]
+	/usr/lib/x86_64-linux-gnu/libstdc++.so.6(+0x94c42) [0x7fdc66979c42]
+	/usr/lib/x86_64-linux-gnu/libstdc++.so.6(+0x92ae6) [0x7fdc66977ae6]
+	/usr/lib/x86_64-linux-gnu/libstdc++.so.6(+0x92b21) [0x7fdc66977b21]
+	/usr/lib/x86_64-linux-gnu/libstdc++.so.6(+0x92d54) [0x7fdc66977d54]
+	/usr/lib/x86_64-linux-gnu/libuhd.so.3.14.1(+0x1eff46) [0x7fdc63e26f46]
+	/usr/lib/x86_64-linux-gnu/libuhd.so.3.14.1(_Z25set_c_global_error_stringRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE+0xd6) [0x7fdc644c98d6]
+	/usr/lib/x86_64-linux-gnu/libuhd.so.3.14.1(uhd_tx_streamer_send+0xd8) [0x7fdc63f2ddd8]
+	/usr/local/lib/libsrslte_rf.so(rf_uhd_send_timed_multi+0x20f) [0x7fdc67086a3f]
+	/usr/local/lib/libsrslte_rf.so(srslte_rf_send_timed_multi+0x29) [0x7fdc67083269]
+	srsenb(+0x1fcd44) [0x55ca69c55d44]
+	srsenb(+0x64391) [0x55ca69abd391]
+	srsenb(+0x68cb3) [0x55ca69ac1cb3]
+	srsenb(+0x114679) [0x55ca69b6d679]
+	srsenb(+0x4ec5d) [0x55ca69aa7c5d]
+	/lib/x86_64-linux-gnu/libpthread.so.0(+0x76db) [0x7fdc67ef86db]
+	/lib/x86_64-linux-gnu/libc.so.6(clone+0x3f) [0x7fdc6605f88f]
+
+--- command='srsenb enb.conf.example' version=19.12.0 signal=6 date='19/05/2020 10:21:07' ---
+--- command='srsenb enb.conf.example' version=19.12.0 signal=6 date='19/05/2020 14:19:22' ---
+--- command='srsenb enb.conf.example' version=19.12.0 signal=6 date='19/05/2020 14:19:22' ---
+--- command='srsenb enb.conf.example' version=19.12.0 signal=6 date='19/05/2020 14:19:59' ---
+--- command='srsenb enb.conf.example' version=19.12.0 signal=6 date='19/05/2020 14:19:59' ---

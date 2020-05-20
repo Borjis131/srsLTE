@@ -135,17 +135,24 @@ public:
     /*
      * wait_and_pop():
      * pops one element from the queue, waiting
-     * if the queue is empty
+     * if the queue is empty. Running in continuous loop.
      */
-    void wait_and_pop(Data &popped_value){
-        pthread_mutex_lock(&mutex);
-        while(queue.empty()){
-            pthread_cond_wait(&cv_has_data, &mutex);
+    void wait_and_pop(/*Data &popped_value*/){
+        std::cout << "SYNC consumer started" << "\n";
+        Data popped_value;
+        while(true){
+            pthread_mutex_lock(&mutex);
+            while(queue.empty()){
+                pthread_cond_wait(&cv_has_data, &mutex);
+            }
+            popped_value = std::move(queue.front());
+            queue.pop_front();
+            //std::cout << "Popped element: " << popped_value << "\n";
+            pthread_mutex_unlock(&mutex);
+
+            // lcid_counter hardcoded to 1 for now
+            pdcp->write_sdu(0xFFFD, 1, std::move(popped_value.payload));
         }
-        popped_value = std::cout(queue.front());
-        queue.pop_front();
-        //std::cout << "Popped element: " << popped_value << "\n";
-        pthread_mutex_unlock(&mutex);
     }
 
     /*
@@ -225,6 +232,17 @@ public:
             }
         }
         return pop_time;
+    }
+
+    /*
+    * pthread_wrapper():
+    * wraps the function called by queue->function()
+    * to work with pthread_create
+    */
+    static void* pthread_wrapper(void* s_queue){
+        sync_queue<Data>* queue = static_cast<sync_queue<Data>*>(s_queue);
+        queue->wait_and_pop();
+        return NULL;
     }
 
     /*

@@ -27,6 +27,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <pthread.h>
+
 #include "srslte/upper/sync.h"
 
 using namespace srslte;
@@ -332,6 +334,11 @@ bool gtpu::m1u_handler::init(std::string m1u_multiaddr_, std::string m1u_if_addr
 
   // Register socket in stack rx sockets thread
   parent->stack->add_gtpu_m1u_socket_handler(m1u_sd);
+  
+  /*
+  pthread_t sync_consumer;
+  pthread_create(&sync_consumer, NULL, &sync_queue<srslte::sync_packet_t>::pthread_wrapper, (void*) &queue);
+  pthread_join(sync_consumer, NULL);*/
 
   return true;
 }
