@@ -37,7 +37,7 @@
 #include "srsenb/hdr/metrics_csv.h"
 #include "srsenb/hdr/metrics_stdout.h"
 
-#include "srsenb/hdr/stack/upper/sync_queue.h"
+//#include "srsenb/hdr/stack/upper/sync_queue.h"
 
 using namespace std;
 using namespace srsenb;
@@ -459,10 +459,10 @@ int main(int argc, char* argv[])
   pthread_t input;
   pthread_create(&input, NULL, &input_loop, &metrics_screen);
 
+  //Create pthread here or in enb.cc and pass queue to gtpu code
+  //sync_queue<srslte::sync_packet_t> queue = sync_queue<srslte::sync_packet_t>(); /*pdcp, 4*/
+
   /*
-
-  Create pthread here or in enb.cc and pass queue to gtpu code
-
   pthread_t sync_consumer;
   pthread_create(&sync_consumer, NULL, &sync_queue<srslte::sync_packet_t>::pthread_wrapper, (void*) &queue);*/
 

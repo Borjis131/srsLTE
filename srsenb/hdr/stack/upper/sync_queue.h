@@ -47,6 +47,8 @@ private:
     pthread_cond_t cv_has_data;
     uint32_t max_check_intervals;
     srsenb::pdcp_interface_gtpu* pdcp = nullptr;
+    uint32_t consumer = 0;
+    uint32_t producer = 0;
 
 public:
     explicit sync_queue<Data>(srsenb::pdcp_interface_gtpu* pdcp_, int checks_ = 4){
@@ -69,12 +71,17 @@ public:
      * notifies the waiting thread
      */
     void push(Data &data){
+        consumer++;
+        std::cout << "producer waiting for lock (push)" << unsigned(consumer) << "\n";
         pthread_mutex_lock(&mutex);
+        std::cout << "producer lock obtained" << unsigned(consumer) << "\n";
         queue.push_back(data);
         //std::cout << "Pushed element\n";
         usort();
         pthread_cond_signal(&cv_has_data);
+        std::cout << "producer fired condition variable signal" << unsigned(consumer) << "\n";
         pthread_mutex_unlock(&mutex);
+        std::cout << "producer lock released" << unsigned(consumer) << "\n";
     }
 
     /*
@@ -138,18 +145,24 @@ public:
      * if the queue is empty. Running in continuous loop.
      */
     void wait_and_pop(/*Data &popped_value*/){
-        std::cout << "SYNC consumer started" << "\n";
+        std::cout << "SYNC consumer started\n";
         Data popped_value;
         while(true){
+            producer++;
+            std::cout << "consumer waiting for lock (wait_and_pop)" << unsigned(producer) << "\n";
             pthread_mutex_lock(&mutex);
+            std::cout << "consumer obtained lock" << unsigned(producer) << "\n";
             while(queue.empty()){
+                std::cout << "consumer waiting for cv" << unsigned(producer) << "\n";
                 pthread_cond_wait(&cv_has_data, &mutex);
+                std::cout << "consumer obtained cv" << unsigned(producer) << "\n";
             }
             popped_value = std::move(queue.front());
+            //popped_value = queue.front();
             queue.pop_front();
             //std::cout << "Popped element: " << popped_value << "\n";
             pthread_mutex_unlock(&mutex);
-
+            std::cout << "consumer released lock" << unsigned(producer) << "\n";
             // lcid_counter hardcoded to 1 for now
             pdcp->write_sdu(0xFFFD, 1, std::move(popped_value.payload));
         }
@@ -160,9 +173,9 @@ public:
      * waits the time specified and pops one element 
      * from the queue. Running in continuous loop.
      */
-    void wait_time_and_pop(Data &popped_value){
-        //std::cout << "SYNC consumer started\n";
-        // TODO: Continuous loop, tear down when eNB running flag is false
+    void wait_time_and_pop(/*Data &popped_value*/){
+        std::cout << "SYNC consumer started\n";
+        Data popped_value;
         while(true){
             pthread_mutex_lock(&mutex);
             uint32_t num_of_checks = max_check_intervals; // Default 4
@@ -190,8 +203,7 @@ public:
     * to be delivered previously.
     */
     timespec perform_checks(Data &popped_value, int num_of_checks){
-        //popped_value = std::move(queue.front()); ??
-        popped_value = queue.front(); // Check front of the queue
+        popped_value = std::move(queue.front()); // Check front of the queue
         timespec pop_time = popped_value.get_timestamp();
         timespec now;
         clock_gettime(CLOCK_MONOTONIC, &now);

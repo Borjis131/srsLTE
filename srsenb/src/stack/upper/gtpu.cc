@@ -335,10 +335,9 @@ bool gtpu::m1u_handler::init(std::string m1u_multiaddr_, std::string m1u_if_addr
   // Register socket in stack rx sockets thread
   parent->stack->add_gtpu_m1u_socket_handler(m1u_sd);
   
-  /*
+  
   pthread_t sync_consumer;
   pthread_create(&sync_consumer, NULL, &sync_queue<srslte::sync_packet_t>::pthread_wrapper, (void*) &queue);
-  pthread_join(sync_consumer, NULL);*/
 
   return true;
 }
@@ -354,12 +353,17 @@ void gtpu::m1u_handler::handle_rx_packet(srslte::unique_byte_buffer_t pdu, const
   sync_header_type1_t sync_header;
   sync_read_header_type1(pdu.get(), &sync_header, gtpu_log);
 
-  sync_packet_t sync_packet = {};
-  sync_packet.header = sync_header;
-  sync_packet.payload = std::move(pdu);
-
-  queue.push(sync_packet);
-  queue.try_pop(sync_packet, lcid_counter);
+  if(counter==998){
+    counter = 0;
+  }
+  sync_packets[counter] = {};
+  sync_packets[counter].header = sync_header;
+  sync_packets[counter].payload = std::move(pdu);
+  //sync_packet.payload = std::move(pdu);
+  
+  queue.push(sync_packets[counter]);
+  counter++;
+  /*queue.try_pop(sync_packet, lcid_counter);*/
 
   //pdcp->write_sdu(SRSLTE_MRNTI, lcid_counter, std::move(pdu));
   //pdcp->write_sdu(SRSLTE_MRNTI, lcid_counter, std::move(sync_packet.payload));

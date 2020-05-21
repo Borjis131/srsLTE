@@ -96,6 +96,10 @@ private:
     std::string          m1u_if_addr;
     sync_queue<srslte::sync_packet_t> queue;
 
+    // Workaround in order to extend life of the objects created at M1U handle_rx_packet
+    srslte::sync_packet_t sync_packets[1000];
+    int counter = 0;
+
     bool initiated    = false;
     int  m1u_sd       = -1;
     int  lcid_counter = 0;
