@@ -235,6 +235,11 @@ int mbms_gw::init_m1_u(mbms_gw_args_t* args)
   m_m1u_multi_addr.sin_addr.s_addr = inet_addr(args->m1u_multi_addr.c_str());
   m_mbms_gw_log->info("Initialized M1-U\n");
 
+  // Initializing SYNC functionalities
+  timestamp = 1;
+  packet_number = 0;
+  elapsed_octet_counter = 0;
+
   return SRSLTE_SUCCESS;
 }
 
@@ -269,12 +274,30 @@ void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
   uint8_t               version;
   srslte::sync_header_type1_t sync_header;
   srslte::gtpu_header_t header;
+
+  packet_number++;
+  elapsed_octet_counter += msg->N_bytes;
+
+  // Reset timestamp when maximum period is reached
+  if(timestamp >= 60000){
+    timestamp = 0;
+  }
+
+  // Every 15 packets increment timestamp
+  if(packet_number > 15){
+    timestamp++;
+    packet_number = 1;
+    elapsed_octet_counter = msg->N_bytes;
+
+    // Code to send a SYNC pdu_type 0
+    // void echo_response(in_addr_t addr, in_port_t port, uint16_t seq);
+  }
   
   // Setup SYNC header
   sync_header.pdu_type = srslte::SYNC_PDU_TYPE_1;
-  sync_header.timestamp = 1;
-  sync_header.packet_number = 2;
-  sync_header.elapsed_octet_counter = 3;
+  sync_header.timestamp = timestamp;
+  sync_header.packet_number = packet_number;
+  sync_header.elapsed_octet_counter = elapsed_octet_counter;
   sync_header.crc = 4; // Header and payload CRC
 
   // Setup GTP-U header

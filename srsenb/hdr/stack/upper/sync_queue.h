@@ -204,7 +204,8 @@ public:
     */
     timespec perform_checks(Data &popped_value, int num_of_checks){
         popped_value = std::move(queue.front()); // Check front of the queue
-        timespec pop_time = popped_value.get_timestamp();
+        uint16_t timestamp = popped_value.get_timestamp();
+        timespec pop_time = uint16_to_timespec(timestamp);
         timespec now;
         clock_gettime(CLOCK_MONOTONIC, &now);
 
@@ -238,7 +239,7 @@ public:
 
             num_of_checks--;
 
-            if(popped_value != queue.front()){ // If the current value to pop is not the front of the queue (reordering)
+            if(popped_value != std::move(queue.front())){ // If the current value to pop is not the front of the queue (reordering)
                 //std::cout << "Value to pop is not the front of the queue\n";
                 return perform_checks(popped_value, num_of_checks);
             }

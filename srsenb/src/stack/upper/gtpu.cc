@@ -353,7 +353,7 @@ void gtpu::m1u_handler::handle_rx_packet(srslte::unique_byte_buffer_t pdu, const
   sync_header_type1_t sync_header;
   sync_read_header_type1(pdu.get(), &sync_header, gtpu_log);
 
-  if(counter==998){
+  if(counter==999){
     counter = 0;
   }
   sync_packets[counter] = {};

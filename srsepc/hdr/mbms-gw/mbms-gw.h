@@ -84,6 +84,13 @@ private:
   srslte::byte_buffer_pool* m_pool;
   srslte::log_filter*       m_mbms_gw_log;
 
+  // SYNC protocol functionalities
+  uint16_t timestamp;
+  uint16_t packet_number;
+  uint32_t elapsed_octet_counter;
+  uint8_t total_number_of_packet[3];
+  uint8_t total_number_of_octet[5];
+
   bool m_sgi_mb_up;
   int  m_sgi_mb_if;
 
