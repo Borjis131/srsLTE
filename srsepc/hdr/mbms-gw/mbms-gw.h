@@ -78,6 +78,7 @@ private:
   int      init_m1_u(mbms_gw_args_t* args);
   void     handle_sgi_md_pdu(srslte::byte_buffer_t* msg);
   uint16_t in_cksum(uint16_t* iphdr, int count);
+  void     synchronisation_information(uint16_t timestamp); // function to send SYNC PDU type 0 or 3 packets
 
   /* Members */
   bool                      m_running;
@@ -88,8 +89,8 @@ private:
   uint16_t timestamp;
   uint16_t packet_number;
   uint32_t elapsed_octet_counter;
-  uint8_t total_number_of_packet[3];
-  uint8_t total_number_of_octet[5];
+  uint32_t total_number_of_packet; // change to uint8_t[3]
+  uint64_t total_number_of_octet; // change to uint8_t[5]
 
   bool m_sgi_mb_up;
   int  m_sgi_mb_if;

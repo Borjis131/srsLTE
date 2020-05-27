@@ -266,20 +266,38 @@ public:
     timespec ts_difftime(timespec x, timespec y){
         timespec result;
         if(x.tv_nsec < y.tv_nsec){
-            long seconds = (y.tv_nsec - x.tv_nsec) / 1000000000 + 1;
-            y.tv_nsec -= 1000000000 * seconds;
+            long seconds = (y.tv_nsec - x.tv_nsec) / 1000000000L + 1;
+            y.tv_nsec -= 1000000000L * seconds;
             y.tv_sec += seconds;
         } if(x.tv_nsec - y.tv_nsec > 1000000000){
-            int seconds = (x.tv_nsec - y.tv_nsec) / 1000000000;
-            y.tv_nsec += 1000000000 * seconds;
+            int seconds = (x.tv_nsec - y.tv_nsec) / 1000000000L;
+            y.tv_nsec += 1000000000L * seconds;
             y.tv_sec -= seconds;
         }
-        /* Compute the time remaining to wait. tv_nsec is certainly positive. */
+        /* Compute the time remaining. tv_nsec is certainly positive. */
         result.tv_sec = x.tv_sec - y.tv_sec;
         result.tv_nsec = x.tv_nsec - y.tv_nsec;
 
         return result;
     }
+
+    /*
+    * ts_addtime():
+    * add timespec y to timespec x
+    * returns the sum
+    */
+   timespec ts_addtime(timespec x, timespec y){
+       timespec result;
+       if(x.tv_nsec + y.tv_nsec >= 1000000000L){
+            result.tv_nsec = x.tv_nsec + y.tv_nsec - 1000000000L;
+            result.tv_sec = x.tv_sec + y.tv_sec +1;
+       } else {
+            result.tv_sec = x.tv_sec + y.tv_sec;
+            result.tv_nsec = x.tv_nsec + y.tv_nsec;
+       }
+
+       return result;
+   }
     
     /*
     * uint16_to_timespec():

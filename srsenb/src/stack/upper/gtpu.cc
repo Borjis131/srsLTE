@@ -349,24 +349,46 @@ void gtpu::m1u_handler::handle_rx_packet(srslte::unique_byte_buffer_t pdu, const
   gtpu_header_t header;
   gtpu_read_header(pdu.get(), &header, gtpu_log);
 
-  // Workaround to uncapsulate SYNC packets
-  sync_header_type1_t sync_header;
-  sync_read_header_type1(pdu.get(), &sync_header, gtpu_log);
+  sync_header_type0_t sync_header0;
+  sync_header_type1_t sync_header1;
+  sync_common_header_type_t sync_common_header;
+  switch(sync_read_common_header(pdu.get(), &sync_common_header, gtpu_log)){
+
+    case SYNC_PDU_TYPE_0:
+      sync_read_header_type0(pdu.get(), &sync_header0, gtpu_log);
+      gtpu_log->console("Received SYNC PDU TYPE 0\n");
+      goto exit;
+    
+    case SYNC_PDU_TYPE_1:
+      sync_read_header_type1(pdu.get(), &sync_header1, gtpu_log);
+      break;
+    
+    case SYNC_PDU_TYPE_3:
+      //return SYNC_PDU_TYPE_3;
+      break;
+    
+    default:
+      //return SYNC_PDU_UNSUPPORTED_TYPE;
+      break;
+  }
+  //sync_header_type1_t sync_header1;
+  //sync_read_header_type1(pdu.get(), &sync_header1, gtpu_log);
 
   if(counter==999){
     counter = 0;
   }
+  
   sync_packets[counter] = {};
-  sync_packets[counter].header = sync_header;
+  sync_packets[counter].header = sync_header1;
   sync_packets[counter].payload = std::move(pdu);
-  //sync_packet.payload = std::move(pdu);
   
   queue.push(sync_packets[counter]);
   counter++;
+  
+exit:
+  gtpu_log->debug("Received SYNC PDU TYPE 0");
   /*queue.try_pop(sync_packet, lcid_counter);*/
-
   //pdcp->write_sdu(SRSLTE_MRNTI, lcid_counter, std::move(pdu));
-  //pdcp->write_sdu(SRSLTE_MRNTI, lcid_counter, std::move(sync_packet.payload));
 }
 
 } // namespace srsenb

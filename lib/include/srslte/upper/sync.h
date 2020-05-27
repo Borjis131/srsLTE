@@ -34,6 +34,7 @@ const uint8_t SYNC_PDU_TYPE_MASK = 0xF0; // Check first 4 bits only
 const uint8_t SYNC_PDU_TYPE_0 = 0x00;
 const uint8_t SYNC_PDU_TYPE_1 = 0x10;
 const uint8_t SYNC_PDU_TYPE_3 = 0x30;
+const uint8_t SYNC_PDU_UNSUPPORTED_TYPE = 0xFF;
 const uint8_t SYNC_HEADER_TYPE_0_LEN_BYTES = 18;
 const uint8_t SYNC_HEADER_TYPE_1_LEN_BYTES = 11;
 const uint8_t SYNC_HEADER_TYPE_3_LEN_BYTES = 19;
@@ -235,6 +236,8 @@ bool operator!= (const sync_packet_t& l, const sync_packet_t& r){ return !(l == 
 bool sync_write_header_type0(sync_header_type0_t* header, srslte::byte_buffer_t* pdu, srslte::log* sync_log);
 bool sync_write_header_type1(sync_header_type1_t* header, srslte::byte_buffer_t* pdu, srslte::log* sync_log);
 bool sync_write_header_type3(sync_header_type3_t* header, srslte::byte_buffer_t* pdu, srslte::log* sync_log);
+
+uint8_t sync_read_common_header(srslte::byte_buffer_t* pdu, sync_common_header_type_t* header, srslte::log* sync_log);
 
 bool sync_read_header_type0(srslte::byte_buffer_t* pdu, sync_header_type0_t* header, srslte::log* sync_log);
 bool sync_read_header_type1(srslte::byte_buffer_t* pdu, sync_header_type1_t* header, srslte::log* sync_log);

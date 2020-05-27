@@ -35,8 +35,6 @@ bool sync_write_header_type0(sync_header_type0_t* header, srslte::byte_buffer_t*
     return false;
   }
 
-  // This is a message itself. See how to implement it.
-  // See GTPU ECHO RESPONSE
   if(pdu->get_headroom() < SYNC_HEADER_TYPE_0_LEN_BYTES){
     sync_log->error("sync_write_header_type0 - No room in PDU for header\n");
     return false;
@@ -67,7 +65,6 @@ bool sync_write_header_type1(sync_header_type1_t* header, srslte::byte_buffer_t*
     return false;
   }
 
-  // Make room for header in pdu
   if(pdu->get_headroom() < SYNC_HEADER_TYPE_1_LEN_BYTES){
     sync_log->error("sync_write_header_type1 - No room in PDU for header\n");
     return false;
@@ -93,8 +90,7 @@ bool sync_write_header_type3(sync_header_type3_t* header, srslte::byte_buffer_t*
     sync_log->error("sync_write_header_type3 - Unhandled SYNC PDU Type. PDU Type: 0x%x\n", header->pdu_type);
     return false;
   }
-  // Make room for header in pdu
-  // Make room for header in pdu
+
   if(pdu->get_headroom() < SYNC_HEADER_TYPE_3_LEN_BYTES){
     sync_log->error("sync_write_header_type3 - No room in PDU for header\n");
     return false;
@@ -117,6 +113,12 @@ bool sync_write_header_type3(sync_header_type3_t* header, srslte::byte_buffer_t*
   ptr += 5;
   uint16_to_uint8(header->crc, ptr);
   return true;
+}
+
+uint8_t sync_read_common_header(srslte::byte_buffer_t* pdu, sync_common_header_type_t* header, srslte::log* sync_log){
+  uint8_t* ptr = pdu->msg;
+  header->pdu_type = *ptr;
+  return header->pdu_type & SYNC_PDU_TYPE_MASK;
 }
 
 bool sync_read_header_type0(srslte::byte_buffer_t* pdu, sync_header_type0_t* header, srslte::log* sync_log){
