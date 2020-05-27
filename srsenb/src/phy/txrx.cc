@@ -106,6 +106,13 @@ void txrx::run_thread()
   // Set TTI so that first TX is at tti=0
   tti = 10235;
 
+  // Workaround to start two eNBs at the same time with the same TTI
+  log_h->console("Waiting 2 seconds\n");
+  timespec sleep;
+  sleep.tv_sec = 2L;
+  sleep.tv_nsec = 0L;
+  nanosleep(&sleep, (timespec *)NULL);
+
   // Main loop
   while (running) {
     tti    = (tti + 1) % 10240;

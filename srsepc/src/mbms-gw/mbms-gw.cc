@@ -338,7 +338,6 @@ void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
     m_mbms_gw_log->console("Error writing to M1-U socket.\n");
   } else {
     m_mbms_gw_log->debug("Sent %d Bytes\n", msg->N_bytes);
-    //m_mbms_gw_log->debug_hex(msg->msg, msg->N_bytes, "\n");
   }
 }
 
@@ -356,7 +355,7 @@ void mbms_gw::synchronisation_information(uint16_t timestamp){
   //sync_header.total_number_of_packet[] = ;
   // TODO: uint32_to_uint8[5]
   std::copy(std::begin({0, 0, 0, 0, 0}), std::end({0, 0, 0, 0, 0}), std::begin(sync_header.total_number_of_octet));
-  //sync_header.total_number_of_octet[5] = 
+  //sync_header.total_number_of_octet[5] = ;
   sync_header.header_crc = 1;
 
   if(!srslte::sync_write_header_type0(&sync_header, pdu.get(), m_mbms_gw_log)){

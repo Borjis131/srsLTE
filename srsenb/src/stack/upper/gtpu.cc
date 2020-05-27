@@ -371,8 +371,6 @@ void gtpu::m1u_handler::handle_rx_packet(srslte::unique_byte_buffer_t pdu, const
       //return SYNC_PDU_UNSUPPORTED_TYPE;
       break;
   }
-  //sync_header_type1_t sync_header1;
-  //sync_read_header_type1(pdu.get(), &sync_header1, gtpu_log);
 
   if(counter==999){
     counter = 0;
@@ -386,7 +384,7 @@ void gtpu::m1u_handler::handle_rx_packet(srslte::unique_byte_buffer_t pdu, const
   counter++;
   
 exit:
-  gtpu_log->debug("Received SYNC PDU TYPE 0");
+  gtpu_log->debug("Received SYNC PDU TYPE 0\n");
   /*queue.try_pop(sync_packet, lcid_counter);*/
   //pdcp->write_sdu(SRSLTE_MRNTI, lcid_counter, std::move(pdu));
 }
