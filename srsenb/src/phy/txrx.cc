@@ -55,7 +55,8 @@ bool txrx::init(srslte::radio_interface_phy* radio_h_,
                 phy_common*                  worker_com_,
                 prach_worker_pool*           prach_,
                 srslte::log*                 log_h_,
-                uint32_t                     prio_)
+                uint32_t                     prio_,
+                const phy_args_t&            args_)
 {
   radio_h       = radio_h_;
   log_h         = log_h_;
@@ -64,6 +65,7 @@ bool txrx::init(srslte::radio_interface_phy* radio_h_,
   prach         = prach_;
   tx_worker_cnt = 0;
   running       = true;
+  args          = args_;
 
   nof_workers = workers_pool->get_nof_workers();
   worker_com->set_nof_workers(nof_workers);
@@ -109,11 +111,11 @@ void txrx::run_thread()
   // Workaround to start two eNBs at the same time with the same TTI
   log_h->console("Waiting 2 seconds\n");
   timespec sleep, now;
-  clock_gettime(CLOCK_MONOTONIC, &now);
-  log_h->console("Current timestamp seconds %ld, nanoseconds %ld\n", now.tv_sec, now.tv_nsec);
-  sleep.tv_sec = 2L;
+  //clock_gettime(CLOCK_MONOTONIC, &now);
+  //log_h->console("Current timestamp seconds %ld, nanoseconds %ld\n", now.tv_sec, now.tv_nsec);
+  sleep.tv_sec = args.delay;
   sleep.tv_nsec = 0L;
-  nanosleep(&sleep, (timespec *)NULL);
+  clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &sleep, (timespec *)NULL);
 
   // Main loop
   while (running) {

@@ -43,7 +43,8 @@ public:
             phy_common*                  worker_com,
             prach_worker_pool*           prach_,
             srslte::log*                 log_h,
-            uint32_t                     prio);
+            uint32_t                     prio,
+            const phy_args_t&            args_);
   void stop();
 
 private:
@@ -55,6 +56,9 @@ private:
   prach_worker_pool*           prach        = nullptr;
   phy_common*                  worker_com   = nullptr;
   srslte::channel_ptr          ul_channel   = nullptr;
+  
+  phy_args_t                   args         = {};
+
 
   // Main system TTI counter
   uint32_t tti = 0;
