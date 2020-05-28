@@ -127,6 +127,7 @@ filename = /tmp/enb.pcap
 [log]
 all_level = debug
 all_hex_limit = 32
+#gtpu_hex_limit = 1600
 filename = /tmp/enb.log
 file_max_size = -1
 

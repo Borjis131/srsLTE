@@ -346,6 +346,9 @@ void gtpu::m1u_handler::handle_rx_packet(srslte::unique_byte_buffer_t pdu, const
 {
   gtpu_log->debug("Received %d bytes from M1-U interface\n", pdu->N_bytes);
 
+  // For hex dumps set gtpu_hex_limit = 1600
+  //gtpu_log->debug_hex(pdu->msg, pdu->N_bytes, "GTPU hex packet");
+
   gtpu_header_t header;
   gtpu_read_header(pdu.get(), &header, gtpu_log);
 
@@ -357,7 +360,7 @@ void gtpu::m1u_handler::handle_rx_packet(srslte::unique_byte_buffer_t pdu, const
     case SYNC_PDU_TYPE_0:
       sync_read_header_type0(pdu.get(), &sync_header0, gtpu_log);
       gtpu_log->console("Received SYNC PDU TYPE 0\n");
-      goto exit;
+      return;
     
     case SYNC_PDU_TYPE_1:
       sync_read_header_type1(pdu.get(), &sync_header1, gtpu_log);
@@ -382,9 +385,7 @@ void gtpu::m1u_handler::handle_rx_packet(srslte::unique_byte_buffer_t pdu, const
   
   queue.push(sync_packets[counter]);
   counter++;
-  
-exit:
-  gtpu_log->debug("Received SYNC PDU TYPE 0\n");
+
   /*queue.try_pop(sync_packet, lcid_counter);*/
   //pdcp->write_sdu(SRSLTE_MRNTI, lcid_counter, std::move(pdu));
 }
