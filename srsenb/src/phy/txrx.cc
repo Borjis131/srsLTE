@@ -109,13 +109,12 @@ void txrx::run_thread()
   tti = 10235;
 
   // Workaround to start two eNBs at the same time with the same TTI
-  log_h->console("Waiting 2 seconds\n");
   timespec sleep, now;
-  //clock_gettime(CLOCK_MONOTONIC, &now);
-  //log_h->console("Current timestamp seconds %ld, nanoseconds %ld\n", now.tv_sec, now.tv_nsec);
   sleep.tv_sec = args.delay;
   sleep.tv_nsec = 0L;
-  clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &sleep, (timespec *)NULL);
+  clock_gettime(CLOCK_REALTIME, &now);
+  log_h->console("Waiting %ld seconds\n", sleep.tv_sec - now.tv_sec);
+  clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &sleep, (timespec *)NULL);
 
   // Main loop
   while (running) {

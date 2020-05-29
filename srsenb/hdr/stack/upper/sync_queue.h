@@ -184,12 +184,13 @@ public:
             }
 
             timespec pop_time = perform_checks(popped_value, num_of_checks);
-
-            clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &pop_time, (timespec *)NULL);
+            // previously set to CLOCK_MONOTONIC
+            clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &pop_time, (timespec *)NULL);
             //nanosleep(&pop_time, (timespec *)NULL);
 
             timespec now;
-            clock_gettime(CLOCK_MONOTONIC, &now);
+            // previously set to CLOCK_MONOTONIC
+            clock_gettime(CLOCK_REALTIME, &now);
             //std::cout << "Popped element: " << popped_value << " at: " << pop_time.tv_nsec - now.tv_nsec << "\n";
             queue.pop_front();
 
@@ -207,7 +208,8 @@ public:
         uint16_t timestamp = popped_value.get_timestamp();
         timespec pop_time = uint16_to_timespec(timestamp);
         timespec now;
-        clock_gettime(CLOCK_MONOTONIC, &now);
+        // previously set to CLOCK_MONOTONIC
+        clock_gettime(CLOCK_REALTIME, &now);
 
         timespec wait_time = ts_difftime(pop_time, now);
 

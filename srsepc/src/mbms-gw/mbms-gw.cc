@@ -381,4 +381,8 @@ void mbms_gw::synchronisation_information(uint16_t timestamp){
   }
 }
 
+void send_sync_period_reference(){
+  return;
+}
+
 } // namespace srsepc

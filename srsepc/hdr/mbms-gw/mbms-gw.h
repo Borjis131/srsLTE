@@ -78,7 +78,8 @@ private:
   int      init_m1_u(mbms_gw_args_t* args);
   void     handle_sgi_md_pdu(srslte::byte_buffer_t* msg);
   uint16_t in_cksum(uint16_t* iphdr, int count);
-  void     synchronisation_information(uint16_t timestamp); // function to send SYNC PDU type 0 or 3 packets
+  void     synchronisation_information(uint16_t timestamp); // function to send SYNC PDU type 0
+  void     send_sync_period_reference(); // function that uses SYNC PDU type 3 to send the absolute time reference
 
   /* Members */
   bool                      m_running;
