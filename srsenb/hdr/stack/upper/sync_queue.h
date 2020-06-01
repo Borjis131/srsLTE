@@ -49,6 +49,7 @@ private:
     srsenb::pdcp_interface_gtpu* pdcp = nullptr;
     uint32_t consumer = 0;
     uint32_t producer = 0;
+    timespec sync_period = {};
 
 public:
     explicit sync_queue<Data>(srsenb::pdcp_interface_gtpu* pdcp_, int checks_ = 4){
@@ -63,6 +64,13 @@ public:
         pthread_cond_init(&cv_has_data, NULL);
         max_check_intervals = 0;
         pdcp = nullptr;
+    }
+
+    void set_sync_period(long sync_period_sec, long sync_period_nsec){
+        pthread_mutex_lock(&mutex);
+        sync_period.tv_sec = sync_period_sec;
+        sync_period.tv_nsec = sync_period_nsec;
+        pthread_mutex_unlock(&mutex);
     }
 
     /*

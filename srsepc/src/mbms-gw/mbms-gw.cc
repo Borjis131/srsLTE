@@ -236,7 +236,7 @@ int mbms_gw::init_m1_u(mbms_gw_args_t* args)
   m_mbms_gw_log->info("Initialized M1-U\n");
 
   // Initializing SYNC functionalities
-  timestamp = 1;
+  timestamp = 0;
   packet_number = 0;
   elapsed_octet_counter = 0;
 
@@ -292,6 +292,12 @@ void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
       timestamp = 0;
     }
   }
+
+  // First packet of every sync period
+  if(timestamp == 0 && packet_number == 0 && elapsed_octet_counter == 0){
+    send_sync_period_reference();
+    m_mbms_gw_log->console("Sending SYNC period reference\n");
+  }
   
   // Setup SYNC header
   sync_header.pdu_type = srslte::SYNC_PDU_TYPE_1;
@@ -346,6 +352,7 @@ void mbms_gw::synchronisation_information(uint16_t timestamp){
   srslte::sync_header_type0_t sync_header;
   srslte::unique_byte_buffer_t pdu = allocate_unique_buffer(*m_pool);
 
+  // Setup SYNC header
   sync_header.pdu_type = srslte::SYNC_PDU_TYPE_0;
   sync_header.timestamp = timestamp;
   sync_header.packet_number = 0;
@@ -362,27 +369,92 @@ void mbms_gw::synchronisation_information(uint16_t timestamp){
     m_mbms_gw_log->console("Error writing SYNC header on PDU type 0\n");
   }
 
-   // Setup GTP-U header
+  // Setup GTP-U header
   header.flags        = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL;
   header.message_type = GTPU_MSG_DATA_PDU;
   header.length       = pdu->N_bytes;
   header.teid         = 0xAAAA; // TODO Harcoded TEID for now
 
   if(!srslte::gtpu_write_header(&header, pdu.get(), m_mbms_gw_log)){
-    m_mbms_gw_log->console("Error writing GTP-U header on PDU for synchronisation packet\n");
+    m_mbms_gw_log->console("Error writing GTP-U header on PDU for synchronisation packet type 0\n");
   }
 
   int n = sendto(m_m1u, pdu->msg, pdu->N_bytes, 0, (sockaddr*)&m_m1u_multi_addr, sizeof(struct sockaddr));
   if (n < 0) {
-    m_mbms_gw_log->console("Error writing to M1-U socket a synchronisation packet.\n");
+    m_mbms_gw_log->console("Error writing a synchronisation packet type 0 to M1-U socket.\n");
   } else {
-    m_mbms_gw_log->debug("Sent synchronisation packet with %d Bytes\n", pdu->N_bytes);
+    m_mbms_gw_log->debug("Sent synchronisation packet type 0 with %d Bytes\n", pdu->N_bytes);
     //m_mbms_gw_log->debug_hex(msg->msg, msg->N_bytes, "\n");
   }
 }
 
-void send_sync_period_reference(){
-  return;
+// Currently we use SYNC PDU type 3 to send the synchronisation period
+void mbms_gw::send_sync_period_reference(){
+  srslte::gtpu_header_t header;
+  srslte::sync_header_type3_t sync_header;
+  srslte::unique_byte_buffer_t pdu = allocate_unique_buffer(*m_pool);
+
+  // Setup SYNC header
+  sync_header.pdu_type = srslte::SYNC_PDU_TYPE_3;
+  sync_header.timestamp = 0;
+  sync_header.packet_number = 0;
+  sync_header.elapsed_octet_counter = 0;
+  // TODO: uint32_to_uint8[3]
+  std::copy(std::begin({0, 0, 0}), std::end({0, 0, 0}), std::begin(sync_header.total_number_of_packet));
+  // TODO: uint32_to_uint8[5]
+  std::copy(std::begin({0, 0, 0, 0, 0}), std::end({0, 0, 0, 0, 0}), std::begin(sync_header.total_number_of_octet));
+  sync_header.crc = 1;
+
+  if(!srslte::sync_write_header_type3(&sync_header, pdu.get(), m_mbms_gw_log)){
+    m_mbms_gw_log->console("Error writing SYNC header on PDU type 3\n");
+  }
+
+  // Getting the time reference to send
+  timespec now;
+  clock_gettime(CLOCK_REALTIME, &now);
+  long sync_period_sec = static_cast<long>(now.tv_sec);
+  long sync_period_nsec = static_cast<long>(now.tv_nsec);
+
+  // Writing the period reference in two longs (as the timespec)
+  pdu->msg -= 16;
+  pdu->N_bytes += 16;
+  uint8_t* ptr = pdu->msg;
+  ptr[0] = (sync_period_sec >> 56) & 0xFF;
+  ptr[1] = (sync_period_sec >> 48) & 0xFF;
+  ptr[2] = (sync_period_sec >> 40) & 0xFF;
+  ptr[3] = (sync_period_sec >> 32)& 0xFF;
+  ptr[4] = (sync_period_sec >> 24) & 0xFF;
+  ptr[5] = (sync_period_sec >> 16) & 0xFF;
+  ptr[6] = (sync_period_sec >> 8) & 0xFF;
+  ptr[7] = sync_period_sec & 0xFF;
+  ptr += 8;
+
+  ptr[0] = (sync_period_nsec >> 56) & 0xFF;
+  ptr[1] = (sync_period_nsec >> 48) & 0xFF;
+  ptr[2] = (sync_period_nsec >> 40) & 0xFF;
+  ptr[3] = (sync_period_nsec >> 32)& 0xFF;
+  ptr[4] = (sync_period_nsec >> 24) & 0xFF;
+  ptr[5] = (sync_period_nsec >> 16) & 0xFF;
+  ptr[6] = (sync_period_nsec >> 8) & 0xFF;
+  ptr[7] = sync_period_nsec & 0xFF;
+
+  // Setup GTP-U header
+  header.flags        = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL;
+  header.message_type = GTPU_MSG_DATA_PDU;
+  header.length       = pdu->N_bytes;
+  header.teid         = 0xAAAA; // TODO Harcoded TEID for now
+
+  if(!srslte::gtpu_write_header(&header, pdu.get(), m_mbms_gw_log)){
+    m_mbms_gw_log->console("Error writing GTP-U header on PDU for synchronisation packet type 3\n");
+  }
+
+  int n = sendto(m_m1u, pdu->msg, pdu->N_bytes, 0, (sockaddr*)&m_m1u_multi_addr, sizeof(struct sockaddr));
+  if (n < 0) {
+    m_mbms_gw_log->console("Error writing a synchronisation packet type 3 to M1-U socket.\n");
+  } else {
+    m_mbms_gw_log->debug("Sent synchronisation packet type 3 with %d Bytes\n", pdu->N_bytes);
+    //m_mbms_gw_log->debug_hex(msg->msg, msg->N_bytes, "\n");
+  }
 }
 
 } // namespace srsepc
