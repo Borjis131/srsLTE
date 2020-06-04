@@ -32,6 +32,7 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 
+#include <inttypes.h>
 #include "srslte/upper/sync.h"
 
 namespace srsepc {
@@ -275,6 +276,19 @@ void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
   srslte::sync_header_type1_t sync_header;
   srslte::gtpu_header_t header;
 
+  // Sanity Check IP packet
+  if (msg->N_bytes < 20) {
+    m_mbms_gw_log->error("IPv4 min len: %d, drop msg len %d\n", 20, msg->N_bytes);
+    return;
+  }
+
+  // IP Headers
+  struct iphdr* iph = (struct iphdr*)msg->msg;
+  if (iph->version != 4) {
+    m_mbms_gw_log->warning("IPv6 not supported yet.\n");
+    return;
+  }
+
   // Every 15 packets increment timestamp
   if(packet_number >= 15){
 
@@ -315,19 +329,6 @@ void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
   header.message_type = GTPU_MSG_DATA_PDU;
   header.length       = msg->N_bytes;
   header.teid         = 0xAAAA; // TODO Harcoded TEID for now
-
-  // Sanity Check IP packet
-  if (msg->N_bytes < 20) {
-    m_mbms_gw_log->error("IPv4 min len: %d, drop msg len %d\n", 20, msg->N_bytes);
-    return;
-  }
-
-  // IP Headers
-  struct iphdr* iph = (struct iphdr*)msg->msg;
-  if (iph->version != 4) {
-    m_mbms_gw_log->warning("IPv6 not supported yet.\n");
-    return;
-  }
   
   // Write SYNC header into packet
   if(!srslte::sync_write_header_type1(&sync_header, msg, m_mbms_gw_log)){
@@ -405,38 +406,37 @@ void mbms_gw::send_sync_period_reference(){
   std::copy(std::begin({0, 0, 0, 0, 0}), std::end({0, 0, 0, 0, 0}), std::begin(sync_header.total_number_of_octet));
   sync_header.crc = 1;
 
-  if(!srslte::sync_write_header_type3(&sync_header, pdu.get(), m_mbms_gw_log)){
-    m_mbms_gw_log->console("Error writing SYNC header on PDU type 3\n");
-  }
-
   // Getting the time reference to send
   timespec now;
   clock_gettime(CLOCK_REALTIME, &now);
-  long sync_period_sec = static_cast<long>(now.tv_sec);
-  long sync_period_nsec = static_cast<long>(now.tv_nsec);
+  uint32_t sync_period_sec = static_cast<uint32_t>(now.tv_sec);
+  uint32_t sync_period_nsec = static_cast<uint32_t>(now.tv_nsec);
 
+  m_mbms_gw_log->console("Sync period seconds: %" PRIu32 " and nanoseconds: %" PRIu32 "\n", sync_period_sec, sync_period_nsec);
   // Writing the period reference in two longs (as the timespec)
-  pdu->msg -= 16;
-  pdu->N_bytes += 16;
-  uint8_t* ptr = pdu->msg;
-  ptr[0] = (sync_period_sec >> 56) & 0xFF;
-  ptr[1] = (sync_period_sec >> 48) & 0xFF;
-  ptr[2] = (sync_period_sec >> 40) & 0xFF;
-  ptr[3] = (sync_period_sec >> 32)& 0xFF;
-  ptr[4] = (sync_period_sec >> 24) & 0xFF;
-  ptr[5] = (sync_period_sec >> 16) & 0xFF;
-  ptr[6] = (sync_period_sec >> 8) & 0xFF;
-  ptr[7] = sync_period_sec & 0xFF;
-  ptr += 8;
+  pdu->msg -= 8;
+  pdu->N_bytes += 8;
 
-  ptr[0] = (sync_period_nsec >> 56) & 0xFF;
-  ptr[1] = (sync_period_nsec >> 48) & 0xFF;
-  ptr[2] = (sync_period_nsec >> 40) & 0xFF;
-  ptr[3] = (sync_period_nsec >> 32)& 0xFF;
+  uint8_t* ptr = pdu->msg;
+  ptr[0] = (sync_period_sec >> 24) & 0xFF;
+  ptr[1] = (sync_period_sec >> 16) & 0xFF;
+  ptr[2] = (sync_period_sec >> 8) & 0xFF;
+  ptr[3] = sync_period_sec & 0xFF;
+  //ptr += 4;
+
   ptr[4] = (sync_period_nsec >> 24) & 0xFF;
   ptr[5] = (sync_period_nsec >> 16) & 0xFF;
   ptr[6] = (sync_period_nsec >> 8) & 0xFF;
   ptr[7] = sync_period_nsec & 0xFF;
+  // Try
+  /*
+  uint32_t* ptr = (uint32_t*) pdu->msg;
+  ptr[0] = sync_period_sec;
+  ptr[1] = sync_period_nsec;*/
+
+  if(!srslte::sync_write_header_type3(&sync_header, pdu.get(), m_mbms_gw_log)){
+    m_mbms_gw_log->console("Error writing SYNC header on PDU type 3\n");
+  }
 
   // Setup GTP-U header
   header.flags        = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL;

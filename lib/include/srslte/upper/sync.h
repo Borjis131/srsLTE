@@ -62,7 +62,6 @@ struct sync_common_header_type_t/*: public boost::intrusive::list_base_hook<>*/{
     uint16_t packet_number;
     uint32_t elapsed_octet_counter;
     
-    /*
     uint16_t get_timestamp(){
         return timestamp;
     }
@@ -79,8 +78,18 @@ struct sync_common_header_type_t/*: public boost::intrusive::list_base_hook<>*/{
                 return false;
             }
         }
-    }*/
+    }
 };
+
+inline bool operator==(const sync_common_header_type_t& l, const sync_common_header_type_t& r){
+    if(l.timestamp == r.timestamp && l.packet_number == r.packet_number && l.pdu_type == r.pdu_type){
+        return true;
+    } else {
+        return false;
+    }
+}
+
+inline bool operator!=(const sync_common_header_type_t& l, const sync_common_header_type_t& r){ return !(l == r); }
 
 /****************************************************************************
  * SYNC Header for PDU type 0
@@ -109,7 +118,8 @@ struct sync_common_header_type_t/*: public boost::intrusive::list_base_hook<>*/{
  * 18     |      Header CRC       |Padding|
  ***************************************************************************/
 
-typedef struct: sync_common_header_type_t {
+// Is it possible to inherit from list_base_hook only in common_header and not in pa
+typedef struct: sync_common_header_type_t, public boost::intrusive::list_base_hook<> {
     // uint8_t pdu_type; // Needs 4 bits only
     // uint16_t timestamp;
     // uint16_t packet_number;
@@ -204,10 +214,11 @@ struct sync_packet_t: public boost::intrusive::list_base_hook<> {
     sync_header_type1_t header;
     srslte::unique_byte_buffer_t payload;
     
+    /*
     uint16_t get_timestamp(){
         return header.timestamp;
-    }
-
+    }*/
+    /*
     bool operator<(const sync_packet_t& r) const{
         if(header.timestamp < r.header.timestamp){
             return true;
@@ -220,25 +231,29 @@ struct sync_packet_t: public boost::intrusive::list_base_hook<> {
                 return false;
             }
         }
+    }*/
+
+    uint16_t get_timestamp(){
+        return header.get_timestamp();
+    }
+
+    bool operator<(const sync_packet_t& r) const{
+        return (header<r.header);
     }
 };
-/*
-bool operator== (const sync_packet_t& l, const sync_packet_t& r){
-    if(l.header.timestamp == r.header.timestamp && l.header.packet_number == r.header.packet_number){
-        return true;
-    } else {
-        return false;
-    }
-}
 
-bool operator!= (const sync_packet_t& l, const sync_packet_t& r){ return !(l == r); }*/
+inline bool operator==(const sync_packet_t& l, const sync_packet_t& r){return (l.header == r.header);}
+
+inline bool operator!=(const sync_packet_t& l, const sync_packet_t& r){return !(l == r);}
 
 bool sync_write_header_type0(sync_header_type0_t* header, srslte::byte_buffer_t* pdu, srslte::log* sync_log);
 bool sync_write_header_type1(sync_header_type1_t* header, srslte::byte_buffer_t* pdu, srslte::log* sync_log);
 bool sync_write_header_type3(sync_header_type3_t* header, srslte::byte_buffer_t* pdu, srslte::log* sync_log);
 
-uint8_t sync_read_common_header(srslte::byte_buffer_t* pdu, sync_common_header_type_t* header, srslte::log* sync_log);
+// This function returns the pdu type of the sync packet
+uint8_t sync_read_header(srslte::byte_buffer_t* pdu, sync_common_header_type_t* header, srslte::log* sync_log);
 
+bool sync_read_common_header_type(srslte::byte_buffer_t* pdu, sync_common_header_type_t* header, srslte::log* sync_log);
 bool sync_read_header_type0(srslte::byte_buffer_t* pdu, sync_header_type0_t* header, srslte::log* sync_log);
 bool sync_read_header_type1(srslte::byte_buffer_t* pdu, sync_header_type1_t* header, srslte::log* sync_log);
 bool sync_read_header_type3(srslte::byte_buffer_t* pdu, sync_header_type3_t* header, srslte::log* sync_log);

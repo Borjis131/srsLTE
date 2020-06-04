@@ -94,11 +94,14 @@ private:
     srslte::log*         gtpu_log = nullptr;
     std::string          m1u_multiaddr;
     std::string          m1u_if_addr;
-    sync_queue<srslte::sync_packet_t> queue;
+    sync_queue<srslte::sync_packet_t, srslte::sync_header_type0_t> queue;
 
     // Workaround in order to extend life of the objects created at M1U handle_rx_packet
-    srslte::sync_packet_t sync_packets[1000];
+    srslte::sync_packet_t sync_packets[10000];
+    srslte::sync_header_type0_t sync_info_packets[1000];
+
     int counter = 0;
+    int counter_info = 0;
 
     bool initiated    = false;
     int  m1u_sd       = -1;

@@ -115,10 +115,27 @@ bool sync_write_header_type3(sync_header_type3_t* header, srslte::byte_buffer_t*
   return true;
 }
 
-uint8_t sync_read_common_header(srslte::byte_buffer_t* pdu, sync_common_header_type_t* header, srslte::log* sync_log){
+uint8_t sync_read_header(srslte::byte_buffer_t* pdu, sync_common_header_type_t* header, srslte::log* sync_log){
   uint8_t* ptr = pdu->msg;
   header->pdu_type = *ptr;
   return header->pdu_type & SYNC_PDU_TYPE_MASK;
+}
+
+bool sync_read_common_header_type(srslte::byte_buffer_t* pdu, sync_common_header_type_t* header, srslte::log* sync_log){
+  uint8_t* ptr = pdu->msg;
+  header->pdu_type = *ptr;
+  ptr++;
+  uint8_to_uint16(ptr, &header->timestamp);
+  ptr += 2;
+  uint8_to_uint16(ptr, &header->packet_number);
+  ptr += 2;
+  uint8_to_uint32(ptr, &header->elapsed_octet_counter);
+  
+  if(!sync_header_pdu_type_check(header, sync_log)){
+    sync_log->error("sync_read_common_header_type - Unhandled SYNC PDU Type. PDU Type: 0x%x\n", header->pdu_type);
+    return false;
+  }
+  return true;
 }
 
 bool sync_read_header_type0(srslte::byte_buffer_t* pdu, sync_header_type0_t* header, srslte::log* sync_log){

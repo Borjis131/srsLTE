@@ -28,6 +28,7 @@
 #include <unistd.h>
 
 #include <pthread.h>
+#include <inttypes.h>
 
 #include "srslte/upper/sync.h"
 
@@ -297,7 +298,7 @@ bool gtpu::m1u_handler::init(std::string m1u_multiaddr_, std::string m1u_if_addr
   m1u_if_addr   = std::move(m1u_if_addr_);
   pdcp          = parent->pdcp;
   gtpu_log      = parent->gtpu_log;
-  queue = sync_queue<srslte::sync_packet_t>(pdcp, 4);
+  queue = sync_queue<srslte::sync_packet_t, srslte::sync_header_type0_t>(pdcp, 4);
 
   // Set up sink socket
   struct sockaddr_in bindaddr = {};
@@ -337,7 +338,7 @@ bool gtpu::m1u_handler::init(std::string m1u_multiaddr_, std::string m1u_if_addr
   
   
   pthread_t sync_consumer;
-  pthread_create(&sync_consumer, NULL, &sync_queue<srslte::sync_packet_t>::pthread_wrapper, (void*) &queue);
+  pthread_create(&sync_consumer, NULL, &sync_queue<srslte::sync_packet_t,srslte::sync_header_type0_t>::sync_consumer, (void*) &queue);
 
   return true;
 }
@@ -352,42 +353,59 @@ void gtpu::m1u_handler::handle_rx_packet(srslte::unique_byte_buffer_t pdu, const
   gtpu_header_t header;
   gtpu_read_header(pdu.get(), &header, gtpu_log);
 
-  sync_header_type0_t sync_header0;
-  sync_header_type1_t sync_header1;
   sync_common_header_type_t sync_common_header;
-  switch(sync_read_common_header(pdu.get(), &sync_common_header, gtpu_log)){
+
+  sync_header_type0_t sync_header_type0;
+  sync_header_type1_t sync_header_type1;
+  sync_header_type3_t sync_header_type3;
+
+  // Avoiding switch variable initialization problems
+  uint32_t period_sec, period_nsec;
+  uint8_t* ptr;
+  sync_packets[counter] = {};
+  switch(sync_read_header(pdu.get(), &sync_common_header, gtpu_log)){
 
     case SYNC_PDU_TYPE_0:
-      sync_read_header_type0(pdu.get(), &sync_header0, gtpu_log);
+      //sync_read_header_type0(pdu.get(), &sync_header0, gtpu_log);
+      sync_read_header_type0(pdu.get(), &sync_header_type0, gtpu_log);
+      sync_info_packets[counter_info] = sync_header_type0;
+      queue.push_info(sync_info_packets[counter_info]);
+      counter_info++;
       gtpu_log->console("Received SYNC PDU TYPE 0\n");
-      return;
+      break;
     
     case SYNC_PDU_TYPE_1:
-      sync_read_header_type1(pdu.get(), &sync_header1, gtpu_log);
+      //sync_read_header_type1(pdu.get(), &sync_header1, gtpu_log);
+      sync_read_header_type1(pdu.get(), &sync_header_type1, gtpu_log);
+      sync_packets[counter].header = sync_header_type1;
+      sync_packets[counter].payload = std::move(pdu);
+      queue.push_data(sync_packets[counter]);
+      counter++;
       break;
     
     case SYNC_PDU_TYPE_3:
-      //return SYNC_PDU_TYPE_3;
+      // Currently used to carry sync_period
+      gtpu_log->console("Received SYNC PDU TYPE 3 SYNC period setter\n");
+      sync_read_header_type3(pdu.get(), &sync_header_type3, gtpu_log);
+      ptr = (uint8_t*) pdu.get()->msg;
+      // fix index of ptr
+      period_sec = (uint32_t)ptr[19] << 24 | (uint32_t)ptr[20] << 16 | (uint32_t)ptr[21] << 8 | (uint32_t)ptr[22];
+      period_nsec = (uint32_t)ptr[23] << 24 | (uint32_t)ptr[24] << 16 | (uint32_t)ptr[25] << 8 | (uint32_t)ptr[26];
+      //gtpu_log->console("Sync period seconds: %" PRIu32 " and nanoseconds: %" PRIu32 "\n", period_sec, period_nsec);
+      queue.set_sync_period(period_sec, period_nsec);
       break;
     
     default:
-      //return SYNC_PDU_UNSUPPORTED_TYPE;
+      gtpu_log->debug("Unsupported SYNC PDU TYPE\n");
       break;
   }
 
-  if(counter==999){
+  if(counter==9999){
     counter = 0;
+  } else if(counter_info==999){
+    counter_info = 0;
   }
-  
-  sync_packets[counter] = {};
-  sync_packets[counter].header = sync_header1;
-  sync_packets[counter].payload = std::move(pdu);
-  
-  queue.push(sync_packets[counter]);
-  counter++;
 
-  /*queue.try_pop(sync_packet, lcid_counter);*/
   //pdcp->write_sdu(SRSLTE_MRNTI, lcid_counter, std::move(pdu));
 }
-
 } // namespace srsenb
