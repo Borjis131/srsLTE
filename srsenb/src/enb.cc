@@ -52,8 +52,8 @@ void enb::cleanup()
   srslte::byte_buffer_pool::cleanup(); // pool has to be cleaned after enb is deleted
   pthread_mutex_unlock(&enb_instance_mutex);
 }
-
-enb::enb() : started(false), pool(srslte::byte_buffer_pool::get_instance(ENB_POOL_SIZE))
+//ENB_POOL_SIZE == 10240
+enb::enb() : started(false), pool(srslte::byte_buffer_pool::get_instance(100000))
 {
   // print build info
   std::cout << std::endl << get_build_string() << std::endl;

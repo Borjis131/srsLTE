@@ -115,6 +115,7 @@ void txrx::run_thread()
   clock_gettime(CLOCK_REALTIME, &now);
   log_h->console("Waiting %ld seconds\n", sleep.tv_sec - now.tv_sec);
   clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &sleep, (timespec *)NULL);
+  log_h->console("Starting txrx\n");
 
   // Main loop
   while (running) {
