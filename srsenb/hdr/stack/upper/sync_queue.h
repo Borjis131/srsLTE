@@ -250,9 +250,17 @@ public:
                 std::cout << "consumer obtained cv" << unsigned(producer) << "\n";
             }
 
-            timespec pop_time = perform_checks(popped_value, num_of_checks);
+            timespec pop_time = perform_checks(popped_value, num_of_checks); 
+            
+            //timespec now, delay_info;
+            //clock_gettime(CLOCK_REALTIME, &now);
+            //delay_info = ts_difftime(pop_time, now);
+            //std::cout << "Delay before clock_nanosleep " << delay_info.tv_sec << " seconds and " << delay_info.tv_nsec << " nanoseconds\n";
+            // Just a test
             clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &pop_time, (timespec *)NULL);
-
+            
+            //delay_info.tv_nsec -= 1000000L;
+            //nanosleep(&delay_info, (timespec *)NULL);
             timespec now, delay_info;
             clock_gettime(CLOCK_REALTIME, &now);
             delay_info = ts_difftime(pop_time, now);
@@ -308,6 +316,8 @@ public:
         popped_value = info_queue.front(); // Check front of the info queue
         uint16_t timestamp = popped_value.get_timestamp();
         timespec pop_time = timestamp_to_timespec(timestamp); // 0 timestamp and 10*ms case solved
+        
+        // TODO: Only add the first time, do not add when called recursively
         pop_time = ts_addtime(pop_time, sync_period); // Adding the timestamp to the period
         timespec now;
         // previously set to CLOCK_MONOTONIC
@@ -316,13 +326,14 @@ public:
         timespec wait_time = ts_difftime(pop_time, now);
 
         if(wait_time.tv_sec < 0 || (wait_time.tv_sec <= 0 && (wait_time.tv_nsec - 500000L < 0L))){ // Adjusts minimum time to perform several checks
-            //std::cout << "First if: Time to wait is less than 0.5ms, popping inmediatly\n";
+            std::cout << "First if: Time to wait is less than 0.5ms, popping inmediatly\n";
             return pop_time;
         }
 
         timespec wait_interval;
         wait_interval.tv_sec = wait_time.tv_sec / num_of_checks;
         wait_interval.tv_nsec = wait_time.tv_nsec / num_of_checks;
+        std::cout << "Wait interval " << wait_interval.tv_sec << " seconds and " << wait_interval.tv_nsec << " nanoseconds\n";
 
         //std::cout << "Wait interval: " << wait_interval.tv_sec << ":" << wait_interval.tv_nsec << " to pop -> " << popped_value << "\n";
         while(num_of_checks > 1){
@@ -337,7 +348,7 @@ public:
 
             //std::cout << "Time remaining: " << wait_time.tv_sec << ":" << wait_time.tv_nsec << "\n";
             if(wait_time.tv_sec < 0 || (wait_time.tv_sec <= 0 && (wait_time.tv_nsec - 500000L < 0L))){ // Adjusts minimum time to perform several checks
-                //std::cout << "Second if: Time to wait is less than 0.5ms, popping inmediatly\n";
+                std::cout << "Second if: Time to wait is less than 0.5ms, popping inmediatly\n";
                 return pop_time;
             }
 
@@ -370,20 +381,19 @@ public:
     */
     timespec ts_difftime(timespec x, timespec y){
         timespec result;
-        if(x.tv_nsec < y.tv_nsec){
-            long seconds = (y.tv_nsec - x.tv_nsec) / 1000000000L + 1;
-            y.tv_nsec -= 1000000000L * seconds;
-            y.tv_sec += seconds;
+        if(x.tv_sec > y.tv_sec && x.tv_nsec > y.tv_nsec){
+            result.tv_sec = x.tv_sec - y.tv_sec;
+            result.tv_nsec = x.tv_nsec - y.tv_nsec;
+        }else if(x.tv_sec > y.tv_sec && x.tv_nsec < y.tv_nsec){
+            result.tv_sec = x.tv_sec - y.tv_sec - 1;
+            result.tv_nsec = 1000000000L + (x.tv_nsec - y.tv_nsec);
+        }else if(x.tv_sec < y.tv_sec && x.tv_nsec > y.tv_nsec){
+            result.tv_sec = y.tv_sec - x.tv_sec - 1;
+            result.tv_nsec = 1000000000L - (x.tv_nsec - y.tv_nsec);
+        }else{
+            result.tv_sec = -(y.tv_sec - x.tv_sec);
+            result.tv_nsec = -(y.tv_nsec - x.tv_nsec);
         }
-        if(x.tv_nsec - y.tv_nsec > 1000000000){
-            int seconds = (x.tv_nsec - y.tv_nsec) / 1000000000L;
-            y.tv_nsec += 1000000000L * seconds;
-            y.tv_sec -= seconds;
-        }
-        /* Compute the time remaining. tv_nsec is certainly positive. */
-        result.tv_sec = x.tv_sec - y.tv_sec;
-        result.tv_nsec = x.tv_nsec - y.tv_nsec;
-
         return result;
     }
 
@@ -396,12 +406,11 @@ public:
        timespec result;
        if(x.tv_nsec + y.tv_nsec >= 1000000000L){
             result.tv_nsec = x.tv_nsec + y.tv_nsec - 1000000000L;
-            result.tv_sec = x.tv_sec + y.tv_sec +1;
+            result.tv_sec = x.tv_sec + y.tv_sec + 1;
        } else {
             result.tv_sec = x.tv_sec + y.tv_sec;
             result.tv_nsec = x.tv_nsec + y.tv_nsec;
        }
-
        return result;
    }
     

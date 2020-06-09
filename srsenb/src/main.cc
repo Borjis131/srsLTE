@@ -460,13 +460,6 @@ int main(int argc, char* argv[])
   pthread_t input;
   pthread_create(&input, NULL, &input_loop, &metrics_screen);
 
-  //Create pthread here or in enb.cc and pass queue to gtpu code
-  //sync_queue<srslte::sync_packet_t> queue = sync_queue<srslte::sync_packet_t>(); /*pdcp, 4*/
-
-  /*
-  pthread_t sync_consumer;
-  pthread_create(&sync_consumer, NULL, &sync_queue<srslte::sync_packet_t>::pthread_wrapper, (void*) &queue);*/
-
   bool signals_pregenerated = false;
   if (running) {
     if (args.gui.enable) {
