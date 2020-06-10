@@ -347,7 +347,7 @@ void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
   } else {
     m_mbms_gw_log->debug("Sent %d Bytes\n", msg->N_bytes);
   }
-    std::cout << "Inside handle_sgi_md_pdu, last line\n";
+  std::cout << "Inside handle_sgi_md_pdu, last line\n";
 }
 
 void mbms_gw::synchronisation_information(uint16_t timestamp){
@@ -429,17 +429,11 @@ void mbms_gw::send_sync_period_reference(){
   ptr[1] = (sync_period_sec >> 16) & 0xFF;
   ptr[2] = (sync_period_sec >> 8) & 0xFF;
   ptr[3] = sync_period_sec & 0xFF;
-  //ptr += 4;
 
   ptr[4] = (sync_period_nsec >> 24) & 0xFF;
   ptr[5] = (sync_period_nsec >> 16) & 0xFF;
   ptr[6] = (sync_period_nsec >> 8) & 0xFF;
   ptr[7] = sync_period_nsec & 0xFF;
-  // Try
-  /*
-  uint32_t* ptr = (uint32_t*) pdu->msg;
-  ptr[0] = sync_period_sec;
-  ptr[1] = sync_period_nsec;*/
 
   if(!srslte::sync_write_header_type3(&sync_header, pdu.get(), m_mbms_gw_log)){
     m_mbms_gw_log->console("Error writing SYNC header on PDU type 3\n");
