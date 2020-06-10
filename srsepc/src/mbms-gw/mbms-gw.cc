@@ -272,6 +272,7 @@ void mbms_gw::run_thread()
 
 void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
 {
+  std::cout << "Inside handle_sgi_md_pdu, first line\n";
   uint8_t               version;
   srslte::sync_header_type1_t sync_header;
   srslte::gtpu_header_t header;
@@ -346,9 +347,11 @@ void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
   } else {
     m_mbms_gw_log->debug("Sent %d Bytes\n", msg->N_bytes);
   }
+    std::cout << "Inside handle_sgi_md_pdu, last line\n";
 }
 
 void mbms_gw::synchronisation_information(uint16_t timestamp){
+  std::cout << "Inside synchronisation information, first line\n";
   srslte::gtpu_header_t header;
   srslte::sync_header_type0_t sync_header;
   srslte::unique_byte_buffer_t pdu = allocate_unique_buffer(*m_pool);
@@ -359,11 +362,13 @@ void mbms_gw::synchronisation_information(uint16_t timestamp){
   sync_header.packet_number = 0;
   sync_header.elapsed_octet_counter = 0;
   // TODO: uint32_to_uint8[3]
+  std::cout << "Before the suspicious code\n";
   std::copy(std::begin({0, 0, 0}), std::end({0, 0, 0}), std::begin(sync_header.total_number_of_packet));
   //sync_header.total_number_of_packet[] = ;
   // TODO: uint32_to_uint8[5]
   std::copy(std::begin({0, 0, 0, 0, 0}), std::end({0, 0, 0, 0, 0}), std::begin(sync_header.total_number_of_octet));
   //sync_header.total_number_of_octet[5] = ;
+  std::cout << "After the suspicious code\n";
   sync_header.header_crc = 1;
 
   if(!srslte::sync_write_header_type0(&sync_header, pdu.get(), m_mbms_gw_log)){
@@ -387,10 +392,12 @@ void mbms_gw::synchronisation_information(uint16_t timestamp){
     m_mbms_gw_log->debug("Sent synchronisation packet type 0 with %d Bytes\n", pdu->N_bytes);
     //m_mbms_gw_log->debug_hex(msg->msg, msg->N_bytes, "\n");
   }
+    std::cout << "Inside synchronisation information, last line\n";
 }
 
 // Currently we use SYNC PDU type 3 to send the synchronisation period
 void mbms_gw::send_sync_period_reference(){
+  std::cout << "Inside send_sync_period_reference, first line\n";
   srslte::gtpu_header_t header;
   srslte::sync_header_type3_t sync_header;
   srslte::unique_byte_buffer_t pdu = allocate_unique_buffer(*m_pool);
@@ -455,6 +462,7 @@ void mbms_gw::send_sync_period_reference(){
     m_mbms_gw_log->debug("Sent synchronisation packet type 3 with %d Bytes\n", pdu->N_bytes);
     //m_mbms_gw_log->debug_hex(msg->msg, msg->N_bytes, "\n");
   }
+    std::cout << "Inside send_sync_period_reference, last line\n";
 }
 
 } // namespace srsepc
