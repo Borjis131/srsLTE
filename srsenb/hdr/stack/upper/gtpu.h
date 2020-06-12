@@ -87,6 +87,7 @@ private:
     m1u_handler& operator=(m1u_handler&&) = delete;
     bool         init(std::string m1u_multiaddr_, std::string m1u_if_addr_);
     void         handle_rx_packet(srslte::unique_byte_buffer_t pdu, const sockaddr_in& addr);
+    bool         init_mbms_sync();
 
   private:
     gtpu*                parent   = nullptr;

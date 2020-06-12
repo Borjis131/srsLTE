@@ -336,9 +336,10 @@ bool gtpu::m1u_handler::init(std::string m1u_multiaddr_, std::string m1u_if_addr
   // Register socket in stack rx sockets thread
   parent->stack->add_gtpu_m1u_socket_handler(m1u_sd);
   
-  
-  pthread_t sync_consumer;
-  pthread_create(&sync_consumer, NULL, &sync_queue<srslte::sync_packet_t,srslte::sync_header_type0_t>::sync_consumer, (void*) &queue);
+  // Init MBMS SYNC protocol consumer
+  if(!init_mbms_sync()){
+    gtpu_log->error("Failed to init MBMS synchronisation protocol consumer\n");
+  }
 
   return true;
 }
@@ -407,5 +408,39 @@ void gtpu::m1u_handler::handle_rx_packet(srslte::unique_byte_buffer_t pdu, const
   }
 
   //pdcp->write_sdu(SRSLTE_MRNTI, lcid_counter, std::move(pdu));
+}
+
+bool gtpu::m1u_handler::init_mbms_sync(){
+
+  // Effort to give priorities to this thread
+  pthread_t sync_consumer;
+  pthread_attr_t     attr;
+  struct sched_param param;
+
+  int prio_offset = 0; //?
+  param.sched_priority = 50 - prio_offset;
+
+  if(pthread_attr_init(&attr)){
+    gtpu_log->error("pthread_attr_init at init_mbms_sync\n");
+  }
+  if(pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED)){
+    gtpu_log->error("pthread_attr_setinheritsched at init_mbms_sync\n");
+  }
+  if(pthread_attr_setschedpolicy(&attr, SCHED_FIFO)){
+    gtpu_log->error("pthread_attr_setschedpolicy at init_mbms_sync\n");
+  }
+  if(pthread_attr_setschedparam(&attr, &param)){
+    gtpu_log->error("pthread_attr_setschedparam, not enough privileges to set Scheduling priority at init_mbms_sync\n");
+  }
+
+  int err = pthread_create(&sync_consumer, &attr, &sync_queue<srslte::sync_packet_t,srslte::sync_header_type0_t>::sync_consumer, (void*) &queue);
+
+  if(err){
+    // Join failed thread to avoid memory leak
+    pthread_join(sync_consumer, NULL);
+    return false;
+  } else {
+    return true;
+  }
 }
 } // namespace srsenb
