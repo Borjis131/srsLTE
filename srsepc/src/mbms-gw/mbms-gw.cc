@@ -359,13 +359,11 @@ void mbms_gw::synchronisation_information(uint16_t timestamp){
   sync_header.packet_number = 0;
   sync_header.elapsed_octet_counter = 0;
   // TODO: uint32_to_uint8[3]
-  std::cout << "Before the suspicious code\n";
   std::copy(std::begin({0, 0, 0}), std::end({0, 0, 0}), std::begin(sync_header.total_number_of_packet));
   //sync_header.total_number_of_packet[] = ;
   // TODO: uint32_to_uint8[5]
   std::copy(std::begin({0, 0, 0, 0, 0}), std::end({0, 0, 0, 0, 0}), std::begin(sync_header.total_number_of_octet));
   //sync_header.total_number_of_octet[5] = ;
-  std::cout << "After the suspicious code\n";
   sync_header.header_crc = 1;
 
   if(!srslte::sync_write_header_type0(&sync_header, pdu.get(), m_mbms_gw_log)){
