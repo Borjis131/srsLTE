@@ -343,11 +343,7 @@ public:
             result.tv_sec = x.tv_sec - y.tv_sec - 1;
             result.tv_nsec = 1000000000L + (x.tv_nsec - y.tv_nsec);
         }else if(x.tv_sec < y.tv_sec && x.tv_nsec > y.tv_nsec){
-            //result.tv_sec = y.tv_sec - x.tv_sec - 1;
-            //result.tv_sec = -result.tv_sec
             result.tv_sec = x.tv_sec + 1 - y.tv_sec;
-            //result.tv_nsec = 1000000000L - (x.tv_nsec - y.tv_nsec);
-            //result.tv_nsec = -result.tv_nsec;
             result.tv_nsec = x.tv_nsec - y.tv_nsec - 1000000000L;
         }else{
             result.tv_sec = -(y.tv_sec - x.tv_sec);
