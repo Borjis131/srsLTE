@@ -195,14 +195,14 @@ public:
             std::cout << "consumer waiting for lock (wait_time_and_pop)" << unsigned(producer) << "\n";
             pthread_mutex_lock(&info_mutex);
             std::cout << "consumer obtained lock" << unsigned(producer) << "\n";
-            uint32_t num_of_checks = max_check_intervals; // Default 4
+            //uint32_t num_of_checks = max_check_intervals; // Default 4
             while(info_queue.empty()){
                 std::cout << "consumer waiting for cv" << unsigned(producer) << "\n";
                 pthread_cond_wait(&cv_has_info, &info_mutex); // Wait for the conditional variable in push_info function
                 std::cout << "consumer obtained cv" << unsigned(producer) << "\n";
             }
 
-            timespec pop_time = perform_checks(popped_value, num_of_checks); 
+            timespec pop_time = perform_checks(popped_value, max_check_intervals); // previously num_of_checks
             
             // Perform the last "check"
             clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &pop_time, (timespec *)NULL);
@@ -252,19 +252,20 @@ public:
 
     /*
     * perform_checks(): 
-    * performs num_of_checks-1 checks while waiting for the Info
+    * performs max_checks-1 checks while waiting for the Info packet
     * to be delivered. Checks the info_queue to see if new packets need 
     * to be delivered previously.
     */
-    timespec perform_checks(Info &popped_value, int num_of_checks){
+    timespec perform_checks(Info &popped_value, int max_checks){
+        int current_checks = max_checks; // To store the maximum checks for this iteration
         popped_value = info_queue.front(); // Check front of the info queue
         uint16_t timestamp = popped_value.get_timestamp();
         timespec pop_time = timestamp_to_timespec(timestamp); // 0 timestamp and 10*ms case solved
         pop_time = ts_addtime(pop_time, sync_period); // Adding the period to the timestamp
         
-        timespec now;
-        clock_gettime(CLOCK_REALTIME, &now);
-        timespec wait_time = ts_difftime(pop_time, now);
+        timespec check_reference; // Current time, used for adding the wait_interval every loop
+        clock_gettime(CLOCK_REALTIME, &check_reference);
+        timespec wait_time = ts_difftime(pop_time, check_reference); // Full wait time
 
         if(wait_time.tv_sec < 0 || (wait_time.tv_sec <= 0 && (wait_time.tv_nsec - 500000L < 0L))){ // Adjusts minimum time to perform several checks
             std::cout << "First if: Time to wait is less than 0.5ms, popping inmediatly\n";
@@ -272,13 +273,27 @@ public:
         }
 
         timespec wait_interval;
-        wait_interval.tv_sec = wait_time.tv_sec / num_of_checks;
-        wait_interval.tv_nsec = wait_time.tv_nsec / num_of_checks;
+        wait_interval.tv_sec = wait_time.tv_sec / max_checks;
+        wait_interval.tv_nsec = wait_time.tv_nsec / max_checks;
         std::cout << "Wait interval " << wait_interval.tv_sec << " seconds and " << wait_interval.tv_nsec << " nanoseconds\n";
 
-        while(num_of_checks > 1){
+        timespec sleep_interval;
+        long long mult;
+        while(current_checks > 1){
             pthread_mutex_unlock(&info_mutex);
-            nanosleep(&wait_interval, (timespec *)NULL);
+            mult = wait_interval.tv_sec*1000000000 + wait_interval.tv_nsec;
+            mult = mult * (max_checks - current_checks + 1); // This adds the number of wait intervals needed to reach the absolute time
+
+            // To timespec again
+            sleep_interval.tv_sec = mult / 1000000000;
+            sleep_interval.tv_nsec = mult % 1000000000;
+
+            sleep_interval = ts_addtime(sleep_interval, check_reference); // Add the check_reference for the absolute time
+            clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &sleep_interval, (timespec *)NULL);
+            // sleep_interval = check_reference + (ts_multtime(wait_time, ))
+            // sleep_time(now + wait_time*(max_checks - current_checks + 1))
+            // clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &sleep_time, (timespec *)NULL);
+            //nanosleep(&wait_interval, (timespec *)NULL);
             pthread_mutex_lock(&info_mutex);
             
             wait_time = ts_difftime(wait_time, wait_interval);
@@ -288,10 +303,10 @@ public:
                 return pop_time;
             }
 
-            num_of_checks--;
+            current_checks--;
             
             if(popped_value != info_queue.front()){ // If the current value to pop is not the front of the queue (reordering)
-                return perform_checks(popped_value, num_of_checks);
+                return perform_checks(popped_value, current_checks);
             }
         }
         return pop_time;
