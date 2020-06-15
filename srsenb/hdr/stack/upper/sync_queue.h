@@ -268,8 +268,8 @@ public:
         timespec wait_time = ts_difftime(pop_time, check_reference); // Full wait time
 
         std::cout << "Overall checks wait_time: " << wait_time.tv_sec << ":" << wait_time.tv_nsec << ", reference: " << check_reference.tv_sec << ":" 
-        << check_reference.tv_nsec << " amd pop_time: " << pop_time.tv_sec << ":" << pop_time.tv_nsec << "\n";
-        
+        << check_reference.tv_nsec << " and pop_time: " << pop_time.tv_sec << ":" << pop_time.tv_nsec << "\n";
+
         if(wait_time.tv_sec < 0 || (wait_time.tv_sec <= 0 && (wait_time.tv_nsec - 500000L < 0L))){ // Adjusts minimum time to perform several checks
             std::cout << "First if: Time to wait is less than 0.5ms, popping inmediatly\n";
             return pop_time;
@@ -344,7 +344,9 @@ public:
             result.tv_nsec = 1000000000L + (x.tv_nsec - y.tv_nsec);
         }else if(x.tv_sec < y.tv_sec && x.tv_nsec > y.tv_nsec){
             result.tv_sec = y.tv_sec - x.tv_sec - 1;
+            // result.tv_nsec = 1000000000L - (x.tv_nsec - y.tv_nsec);
             result.tv_nsec = 1000000000L - (x.tv_nsec - y.tv_nsec);
+            result.tv_nsec = -result.tv_nsec;
         }else{
             result.tv_sec = -(y.tv_sec - x.tv_sec);
             result.tv_nsec = -(y.tv_nsec - x.tv_nsec);
