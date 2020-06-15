@@ -281,6 +281,7 @@ public:
         long long mult;
         while(current_checks > 1){
             pthread_mutex_unlock(&info_mutex);
+            std::cout << "Wait interval mutex_unlock\n";
             mult = wait_interval.tv_sec*1000000000 + wait_interval.tv_nsec;
             mult = mult * (max_checks - current_checks + 1); // This adds the number of wait intervals needed to reach the absolute time
 
@@ -290,12 +291,19 @@ public:
 
             sleep_interval = ts_addtime(sleep_interval, check_reference); // Add the check_reference for the absolute time
             clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &sleep_interval, (timespec *)NULL);
+            
+            // Just a test to see the time elapsed between nanosleep and lock
+            timespec test1, test2, test3;
+            clock_gettime(CLOCK_REALTIME, &test1);
             // sleep_interval = check_reference + (ts_multtime(wait_time, ))
             // sleep_time(now + wait_time*(max_checks - current_checks + 1))
             // clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &sleep_time, (timespec *)NULL);
             //nanosleep(&wait_interval, (timespec *)NULL);
             pthread_mutex_lock(&info_mutex);
-            
+            clock_gettime(CLOCK_REALTIME, &test2);
+            test3 = ts_difftime(test2, test1);
+
+            std::cout << "Wait interval mutex_lock, time: " << test3.tv_sec << " seconds and " << test3.tv_nsec << "nanoseconds\n";
             wait_time = ts_difftime(wait_time, wait_interval);
 
             if(wait_time.tv_sec < 0 || (wait_time.tv_sec <= 0 && (wait_time.tv_nsec - 500000L < 0L))){ // Adjusts minimum time to perform several checks
