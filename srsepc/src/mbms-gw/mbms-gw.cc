@@ -289,8 +289,8 @@ void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
     return;
   }
 
-  // Every 15 packets increment timestamp
-  if(packet_number >= 15){
+  // Every 2 packets increment timestamp
+  if(packet_number >= 2){
 
     total_number_of_packet = total_number_of_packet + packet_number + 1; // Packet 0 exists
     total_number_of_octet = total_number_of_octet + elapsed_octet_counter;

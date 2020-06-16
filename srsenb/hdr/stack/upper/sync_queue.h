@@ -49,7 +49,8 @@ private:
     srsenb::pdcp_interface_gtpu* pdcp = nullptr;
     uint32_t consumer = 0;
     uint32_t producer = 0;
-    timespec sync_period = {}; // Stores the sync period reference
+    timespec sync_period = {}; // Stores the sync period future reference
+    timespec current_sync_period = {}; // This is the actual sync period, it changes when timestamp 60000 is reached
 
 public:
     explicit sync_queue<Data, Info>(srsenb::pdcp_interface_gtpu* pdcp_, int checks_ = 4){
@@ -77,7 +78,7 @@ public:
      */
     // TODO: set_sync_period when current period is over
     void set_sync_period(uint32_t sync_period_sec, uint32_t sync_period_nsec){
-        std::cout << "Setting sync period seconds: " << sync_period_sec << " and nanoseconds: " << sync_period_nsec << "\n";
+        std::cout << "Received sync period seconds: " << sync_period_sec << " and nanoseconds: " << sync_period_nsec << "\n";
         pthread_mutex_lock(&info_mutex);
         sync_period.tv_sec = sync_period_sec;
         sync_period.tv_nsec = sync_period_nsec;
@@ -111,7 +112,8 @@ public:
         std::cout << "producer waiting for lock (push_info)\n";
         std::cout << "producer lock obtained (push_info)\n";
         info_queue.push_back(info);
-        info_queue.sort();
+        // Little workaround to work with sync_period_refresh
+        //info_queue.sort();
         pthread_cond_signal(&cv_has_info);
         std::cout << "producer fired condition variable signal (push_info)\n";
         pthread_mutex_unlock(&info_mutex);
@@ -260,8 +262,16 @@ public:
         int current_checks = max_checks; // To store the maximum checks for this iteration
         popped_value = info_queue.front(); // Check front of the info queue
         uint16_t timestamp = popped_value.get_timestamp();
+
+        // The real sync_period_setter
+        if(timestamp == 0){
+            std::cout << "Setting sync_period to the received sync_period\n";
+            current_sync_period = sync_period;
+        }
+
         timespec pop_time = timestamp_to_timespec(timestamp); // 0 timestamp and 10*ms case solved
-        pop_time = ts_addtime(pop_time, sync_period); // Adding the period to the timestamp
+        //pop_time = ts_addtime(pop_time, sync_period);
+        pop_time = ts_addtime(pop_time, current_sync_period); // Adding the period to the timestamp
         
         timespec check_reference; // Current time, used for adding the wait_interval every loop
         clock_gettime(CLOCK_REALTIME, &check_reference);

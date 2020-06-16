@@ -368,11 +368,11 @@ void gtpu::m1u_handler::handle_rx_packet(srslte::unique_byte_buffer_t pdu, const
 
     case SYNC_PDU_TYPE_0:
       //sync_read_header_type0(pdu.get(), &sync_header0, gtpu_log);
+      gtpu_log->console("Received SYNC PDU TYPE 0\n");
       sync_read_header_type0(pdu.get(), &sync_header_type0, gtpu_log);
       sync_info_packets[counter_info] = sync_header_type0;
       queue.push_info(sync_info_packets[counter_info]);
       counter_info++;
-      gtpu_log->console("Received SYNC PDU TYPE 0\n");
       break;
     
     case SYNC_PDU_TYPE_1:
