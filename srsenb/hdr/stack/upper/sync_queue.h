@@ -263,9 +263,11 @@ public:
         popped_value = info_queue.front(); // Check front of the info queue
         uint16_t timestamp = popped_value.get_timestamp();
 
+        std::cout << "perform_checks timestamp: " << unsigned(timestamp) << "\n";
+
         // The real sync_period_setter
         if(timestamp == 0){
-            std::cout << "Setting sync_period to the received sync_period\n";
+            std::cout << "Setting current_sync_period to the received sync_period\n";
             current_sync_period = sync_period;
         }
 
@@ -276,10 +278,10 @@ public:
         timespec check_reference; // Current time, used for adding the wait_interval every loop
         clock_gettime(CLOCK_REALTIME, &check_reference);
         timespec wait_time = ts_difftime(pop_time, check_reference); // Full wait time
-
+        /*
         std::cout << "Overall checks wait_time: " << wait_time.tv_sec << ":" << wait_time.tv_nsec << ", reference: " << check_reference.tv_sec << ":" 
         << check_reference.tv_nsec << " and pop_time: " << pop_time.tv_sec << ":" << pop_time.tv_nsec << "\n";
-
+        */
         if(wait_time.tv_sec < 0 || (wait_time.tv_sec <= 0 && (wait_time.tv_nsec - 500000L < 0L))){ // Adjusts minimum time to perform several checks
             std::cout << "First if: Time to wait is less than 0.5ms, popping inmediatly\n";
             return pop_time;
