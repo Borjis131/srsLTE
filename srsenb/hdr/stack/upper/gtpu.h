@@ -98,8 +98,9 @@ private:
     sync_queue<srslte::sync_packet_t, srslte::sync_header_type0_t> queue;
 
     // Workaround in order to extend life of the objects created at M1U handle_rx_packet
-    srslte::sync_packet_t sync_packets[50000];
-    srslte::sync_header_type0_t sync_info_packets[5000];
+    // These are the real buffers that contain the packets, the queue stores only the address
+    srslte::sync_packet_t sync_packets[100000];
+    srslte::sync_header_type0_t sync_info_packets[50000];
 
     int counter = 0;
     int counter_info = 0;
