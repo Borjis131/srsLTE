@@ -401,9 +401,9 @@ void gtpu::m1u_handler::handle_rx_packet(srslte::unique_byte_buffer_t pdu, const
       break;
   }
 
-  if(counter==99999){
+  if(counter==339999){ // Last packet in the buffer
     counter = 0;
-  } else if(counter_info==49999){
+  } else if(counter_info==169999){ // Last packet in the buffer
     counter_info = 0;
   }
 
