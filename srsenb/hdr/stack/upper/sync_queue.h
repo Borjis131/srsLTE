@@ -49,8 +49,8 @@ private:
     srsenb::pdcp_interface_gtpu* pdcp = nullptr;
     uint32_t consumer = 0;
     uint32_t producer = 0;
-    timespec sync_period = {}; // Stores the sync period future reference
-    timespec current_sync_period = {}; // This is the actual sync period, it changes when timestamp 60000 is reached
+    timespec sync_period = {}; // Stores the sync period reference
+    int sync_period_counter = 0; // Number of sync periods
 
 public:
     explicit sync_queue<Data, Info>(srsenb::pdcp_interface_gtpu* pdcp_, int checks_ = 4){
@@ -81,8 +81,6 @@ public:
         pthread_mutex_lock(&info_mutex);
         sync_period.tv_sec = sync_period_sec;
         sync_period.tv_nsec = sync_period_nsec;
-        std::cout << "Checking current_period seconds:" << current_sync_period.tv_sec << " and nanoseconds:" << current_sync_period.tv_nsec << "\n";
-        std::cout << "And checking sync_period seconds:" << sync_period.tv_sec << " and nanoseconds:" << sync_period.tv_nsec << "\n";
         pthread_mutex_unlock(&info_mutex);
     }
 
@@ -275,11 +273,11 @@ public:
 
         std::cout << "perform_checks timestamp: " << unsigned(timestamp) << "\n";
 
-        // The real sync_period_setter
-        if(timestamp == 0 && popped_value.packet_number == 0){
-            std::cout << "Setting current_sync_period to the received sync_period\n";
-            current_sync_period.tv_sec = sync_period.tv_sec;
-            current_sync_period.tv_nsec = sync_period.tv_nsec;
+        // Everytime timestamp 0 is reached 
+        if(timestamp == 0 /*&& popped_value.packet_number == 0*/){ // Not needed always 0 for info packets
+            std::cout << "Updating sync_period reference\n";
+            sync_period.tv_sec = sync_period.tv_sec + (600*sync_period_counter);
+            sync_period_counter++;
         }
 
         timespec pop_time = timestamp_to_timespec(timestamp); // 0 timestamp and 10*ms case solved

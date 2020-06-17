@@ -308,9 +308,10 @@ void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
   }
 
   // First packet of every sync period
-  if(timestamp == 0 && packet_number == 0 && elapsed_octet_counter == 0){
+  if(timestamp == 0 && packet_number == 0 && elapsed_octet_counter == 0 && !locked){
     send_sync_period_reference();
     m_mbms_gw_log->console("Sending SYNC period reference\n");
+    locked = true; // Send SYNC period reference only one time
   }
   
   // Setup SYNC header

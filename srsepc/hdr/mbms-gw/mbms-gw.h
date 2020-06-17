@@ -92,6 +92,7 @@ private:
   uint32_t elapsed_octet_counter;
   uint32_t total_number_of_packet; // change to uint8_t[3]
   uint64_t total_number_of_octet; // change to uint8_t[5]
+  bool locked = false; // Send SYNC period reference only one time
 
   bool m_sgi_mb_up;
   int  m_sgi_mb_if;
