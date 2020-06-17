@@ -54,7 +54,8 @@ void enb::cleanup()
 }
 //ENB_POOL_SIZE == 10240
 // 500000 too big for IRIS testbed resources?
-enb::enb() : started(false), pool(srslte::byte_buffer_pool::get_instance(300000))
+// Cant work with 300000
+enb::enb() : started(false), pool(srslte::byte_buffer_pool::get_instance(200000))
 {
   // print build info
   std::cout << std::endl << get_build_string() << std::endl;
