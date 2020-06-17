@@ -82,6 +82,8 @@ public:
         pthread_mutex_lock(&info_mutex);
         sync_period.tv_sec = sync_period_sec;
         sync_period.tv_nsec = sync_period_nsec;
+        std::cout << "Checking current_period seconds:" << current_sync_period.tv_sec << " and nanoseconds:" << current_sync_period.tv_nsec << "\n";
+        std::cout << "And checking sync_period seconds:" << sync_period.tv_sec << " and nanoseconds:" << sync_period.tv_nsec << "\n";
         pthread_mutex_unlock(&info_mutex);
     }
 
@@ -191,28 +193,22 @@ public:
     void wait_time_and_pop(){
         std::cout << "SYNC consumer started\n";
         Info popped_value = {};
-        Data popped_data_value = {};
+        Data popped_data_value[50]; // Just a random number ideally the SYNC sequence max_value
         while(true){
             producer++;
-            std::cout << "consumer waiting for lock (wait_time_and_pop)" << unsigned(producer) << "\n";
+            std::cout << "consumer waiting for info_lock (wait_time_and_pop)" << unsigned(producer) << "\n";
             pthread_mutex_lock(&info_mutex);
-            std::cout << "consumer obtained lock" << unsigned(producer) << "\n";
+            std::cout << "consumer obtained info_lock" << unsigned(producer) << "\n";
             //uint32_t num_of_checks = max_check_intervals; // Default 4
             while(info_queue.empty()){
-                std::cout << "consumer waiting for cv" << unsigned(producer) << "\n";
+                std::cout << "consumer waiting for info_cv" << unsigned(producer) << "\n";
                 pthread_cond_wait(&cv_has_info, &info_mutex); // Wait for the conditional variable in push_info function
-                std::cout << "consumer obtained cv" << unsigned(producer) << "\n";
+                std::cout << "consumer obtained info_cv" << unsigned(producer) << "\n";
             }
 
             timespec pop_time = perform_checks(popped_value, max_check_intervals); // previously num_of_checks
             
-            // Perform the last "check"
-            clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &pop_time, (timespec *)NULL);
-
-            timespec now, delay_info;
-            clock_gettime(CLOCK_REALTIME, &now);
-            delay_info = ts_difftime(pop_time, now);
-            std::cout << "Popped info element at: " << delay_info.tv_sec << " seconds and " << delay_info.tv_nsec << " nanoseconds\n";
+            // Retrieve all sequence packets before the last "check"
             popped_value = info_queue.front();
             info_queue.pop_front();
             pthread_mutex_unlock(&info_mutex);
@@ -223,32 +219,47 @@ public:
             while(data_queue.empty()){
                 pthread_cond_wait(&cv_has_data, &data_mutex);
             }
+            std::cout << "consumer obtained data_lock\n";
 
-            data_queue.sort(); // Sort here the queue?
-
+            // Little workaround to work with sync_period_refresh
+            //data_queue.sort(); // Sort here the queue?
+            
             int data_burst = 0;
             int queue_size = data_queue.size();
-            timespec delay_data;
+            timespec now, delay_data, delay_info;
+
+            // The limit is the number of items in the queue but the loop breaks in the first different timestamp
             for(int i = 0; i < queue_size; i++){
-                popped_data_value = std::move(data_queue.front());
-                if(popped_value.get_timestamp() == popped_data_value.get_timestamp()){
+                popped_data_value[i] = std::move(data_queue.front());
+                if(popped_value.get_timestamp() == popped_data_value[i].get_timestamp()){
                     data_burst++;
                     data_queue.pop_front();
-
-                    clock_gettime(CLOCK_REALTIME, &now);
-                    delay_data = ts_difftime(pop_time, now);
-                    std::cout << "Popped data element at: " << delay_data.tv_sec << " seconds and " << delay_data.tv_nsec << " nanoseconds\n";
-
-                    pdcp->write_sdu(0xFFFD, 1, std::move(popped_data_value.payload)); // Hardcoded lcid for now
+                    //std::cout << "Popped data element at: " << delay_data.tv_sec << " seconds and " << delay_data.tv_nsec << " nanoseconds\n";
+                    //pdcp->write_sdu(0xFFFD, 1, std::move(popped_data_value.payload)); // Hardcoded lcid for now
                 } else {
                     data_queue.pop_front();
-                    data_queue.push_front(popped_data_value);
+                    data_queue.push_front(popped_data_value[i]);
                     break;
                 }
             }
             std::cout << data_burst << " data packets sent\n";
             pthread_mutex_unlock(&data_mutex);
             std::cout << "consumer released lock" << unsigned(producer) << "\n";
+
+            // Perform the last "check" 
+            // Margin of X nanoseconds?
+            clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &pop_time, (timespec *)NULL);
+
+            clock_gettime(CLOCK_REALTIME, &now);
+            delay_info = ts_difftime(pop_time, now);
+            std::cout << "Popped info element at: " << delay_info.tv_sec << " seconds and " << delay_info.tv_nsec << " nanoseconds\n";
+
+            for(int i = 0; i < data_burst; i++){
+                clock_gettime(CLOCK_REALTIME, &now);
+                delay_data = ts_difftime(pop_time, now);
+                std::cout << "Popped data element at: " << delay_data.tv_sec << " seconds and " << delay_data.tv_nsec << " nanoseconds\n";
+                pdcp->write_sdu(0xFFFD, 1, std::move(popped_data_value[i].payload)); // Hardcoded lcid for now
+            }
         }
     }
 
@@ -266,9 +277,10 @@ public:
         std::cout << "perform_checks timestamp: " << unsigned(timestamp) << "\n";
 
         // The real sync_period_setter
-        if(timestamp == 0){
+        if(timestamp == 0 && popped_value.packet_number == 0){
             std::cout << "Setting current_sync_period to the received sync_period\n";
-            current_sync_period = sync_period;
+            current_sync_period.tv_sec = sync_period.tv_sec;
+            current_sync_period.tv_nsec = sync_period.tv_nsec;
         }
 
         timespec pop_time = timestamp_to_timespec(timestamp); // 0 timestamp and 10*ms case solved
@@ -281,6 +293,7 @@ public:
         
         std::cout << "Overall checks wait_time: " << wait_time.tv_sec << ":" << wait_time.tv_nsec << ", reference: " << check_reference.tv_sec << ":" 
         << check_reference.tv_nsec << " and pop_time: " << pop_time.tv_sec << ":" << pop_time.tv_nsec << "\n";
+        std::cout << "Current sync_period seconds: " << current_sync_period.tv_sec << " and nanoseconds: " << current_sync_period.tv_nsec << "\n";
         
         if(wait_time.tv_sec < 0 || (wait_time.tv_sec <= 0 && (wait_time.tv_nsec - 500000L < 0L))){ // Adjusts minimum time to perform several checks
             std::cout << "First if: Time to wait is less than 0.5ms, popping inmediatly\n";

@@ -53,7 +53,7 @@ void enb::cleanup()
   pthread_mutex_unlock(&enb_instance_mutex);
 }
 //ENB_POOL_SIZE == 10240
-enb::enb() : started(false), pool(srslte::byte_buffer_pool::get_instance(100000))
+enb::enb() : started(false), pool(srslte::byte_buffer_pool::get_instance(500000))
 {
   // print build info
   std::cout << std::endl << get_build_string() << std::endl;
