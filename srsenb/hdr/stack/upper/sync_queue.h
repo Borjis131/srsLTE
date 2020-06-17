@@ -76,7 +76,6 @@ public:
      * sets the sync period reference for the relative timestamps
      * currently waits for the info_mutex (check)
      */
-    // TODO: set_sync_period when current period is over
     void set_sync_period(uint32_t sync_period_sec, uint32_t sync_period_nsec){
         std::cout << "Received sync period seconds: " << sync_period_sec << " and nanoseconds: " << sync_period_nsec << "\n";
         pthread_mutex_lock(&info_mutex);
@@ -114,8 +113,8 @@ public:
         std::cout << "producer waiting for lock (push_info)\n";
         std::cout << "producer lock obtained (push_info)\n";
         info_queue.push_back(info);
-        // Little workaround to work with sync_period_refresh
-        //info_queue.sort();
+        // Will crash when timestamp 59999 is sent in the mbms_gw
+        info_queue.sort();
         pthread_cond_signal(&cv_has_info);
         std::cout << "producer fired condition variable signal (push_info)\n";
         pthread_mutex_unlock(&info_mutex);
@@ -221,8 +220,8 @@ public:
             }
             std::cout << "consumer obtained data_lock\n";
 
-            // Little workaround to work with sync_period_refresh
-            //data_queue.sort(); // Sort here the queue?
+            // Will crash when timestamp 59999 is sent in the mbms_gw
+            data_queue.sort(); // Sort here the queue?
             
             int data_burst = 0;
             int queue_size = data_queue.size();
