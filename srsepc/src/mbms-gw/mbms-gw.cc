@@ -240,6 +240,7 @@ int mbms_gw::init_m1_u(mbms_gw_args_t* args)
   timestamp = 0;
   packet_number = 0;
   elapsed_octet_counter = 0;
+  current_sync_period = 0;
 
   return SRSLTE_SUCCESS;
 }
@@ -289,8 +290,8 @@ void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
     return;
   }
 
-  // Every 2 packets increment timestamp
-  if(packet_number >= 3){
+  // Every 4 packets increment timestamp
+  if(packet_number >= 4){
 
     total_number_of_packet = total_number_of_packet + packet_number + 1; // Packet 0 exists
     total_number_of_octet = total_number_of_octet + elapsed_octet_counter;
@@ -303,6 +304,7 @@ void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
 
     // Reset timestamp when maximum period is reached
     if(timestamp >= 60000){
+      current_sync_period++;
       timestamp = 0;
     }
   }
@@ -315,7 +317,7 @@ void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
   }
   
   // Setup SYNC header
-  sync_header.pdu_type = srslte::SYNC_PDU_TYPE_1;
+  sync_header.pdu_type = srslte::SYNC_PDU_TYPE_1 | (current_sync_period & 0x0F); // Workaround to diff periods
   sync_header.timestamp = timestamp;
   std::cout << "Writing timestamp: " << unsigned(timestamp) << "\n";
   sync_header.packet_number = packet_number;
@@ -356,7 +358,7 @@ void mbms_gw::synchronisation_information(uint16_t timestamp){
   srslte::unique_byte_buffer_t pdu = allocate_unique_buffer(*m_pool);
 
   // Setup SYNC header
-  sync_header.pdu_type = srslte::SYNC_PDU_TYPE_0;
+  sync_header.pdu_type = srslte::SYNC_PDU_TYPE_0 | (current_sync_period & 0x0F); // Workaround to diff periods
   sync_header.timestamp = timestamp;
   sync_header.packet_number = 0;
   sync_header.elapsed_octet_counter = 0;
@@ -398,7 +400,7 @@ void mbms_gw::send_sync_period_reference(){
   srslte::unique_byte_buffer_t pdu = allocate_unique_buffer(*m_pool);
 
   // Setup SYNC header
-  sync_header.pdu_type = srslte::SYNC_PDU_TYPE_3;
+  sync_header.pdu_type = srslte::SYNC_PDU_TYPE_3 | (current_sync_period & 0x0F); // Workaround to diff periods
   sync_header.timestamp = 0;
   sync_header.packet_number = 0;
   sync_header.elapsed_octet_counter = 0;

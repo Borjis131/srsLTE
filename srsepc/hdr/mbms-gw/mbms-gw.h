@@ -93,6 +93,7 @@ private:
   uint32_t total_number_of_packet; // change to uint8_t[3]
   uint64_t total_number_of_octet; // change to uint8_t[5]
   bool locked = false; // Send SYNC period reference only one time
+  uint8_t current_sync_period; // Flag to differentiate between SYNC periods while sorting
 
   bool m_sgi_mb_up;
   int  m_sgi_mb_if;

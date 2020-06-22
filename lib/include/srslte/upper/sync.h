@@ -67,15 +67,22 @@ struct sync_common_header_type_t/*: public boost::intrusive::list_base_hook<>*/{
     }
 
     bool operator<(const sync_common_header_type_t& r) const{
-        if(timestamp < r.timestamp){
+        // Check 4 bits of sync_period
+        if((pdu_type & 0x0F) < (r.pdu_type & 0x0F)){
             return true;
-        } else if (timestamp > r.timestamp){
+        } else if ((pdu_type & 0x0F) > (r.pdu_type & 0x0F)){
             return false;
-        } else { // Same timestamp
-            if(packet_number < r.packet_number){
+        } else { // Same sync_period
+            if(timestamp < r.timestamp){
                 return true;
-            } else { // l.packet_number > r.packet_number
+            } else if (timestamp > r.timestamp){
                 return false;
+            } else { // Same timestamp
+                if(packet_number < r.packet_number){
+                    return true;
+                } else { // l.packet_number > r.packet_number
+                    return false;
+                }
             }
         }
     }
@@ -119,7 +126,7 @@ inline bool operator!=(const sync_common_header_type_t& l, const sync_common_hea
  ***************************************************************************/
 
 // Is it possible to inherit from list_base_hook only in common_header and not in pa
-typedef struct: sync_common_header_type_t, public boost::intrusive::list_base_hook<> {
+typedef struct: sync_common_header_type_t, public boost::intrusive::list_base_hook<>{
     // uint8_t pdu_type; // Needs 4 bits only
     // uint16_t timestamp;
     // uint16_t packet_number;
@@ -152,7 +159,7 @@ typedef struct: sync_common_header_type_t, public boost::intrusive::list_base_ho
  * Last   |        Spare Extension        |  Last 0-4 octets
  ***************************************************************************/
 
-typedef struct: sync_common_header_type_t {
+typedef struct: sync_common_header_type_t{
     // uint8_t pdu_type; // Needs 4 bits only
     // uint16_t timestamp;
     // uint16_t packet_number;
@@ -200,7 +207,7 @@ typedef struct: sync_common_header_type_t {
  * Last   |        Spare Extension        |  Last 0-4 octets
  ***************************************************************************/
 
-typedef struct: sync_common_header_type_t {
+typedef struct: sync_common_header_type_t{
     // uint8_t pdu_type; // Needs 4 bits only
     // uint16_t timestamp;
     // uint16_t packet_number;
@@ -210,28 +217,9 @@ typedef struct: sync_common_header_type_t {
     uint16_t crc; // Header and Payload CRC
 } sync_header_type3_t;
 
-struct sync_packet_t: public boost::intrusive::list_base_hook<> {
+struct sync_packet_t: public boost::intrusive::list_base_hook<>{
     sync_header_type1_t header;
     srslte::unique_byte_buffer_t payload;
-    
-    /*
-    uint16_t get_timestamp(){
-        return header.timestamp;
-    }*/
-    /*
-    bool operator<(const sync_packet_t& r) const{
-        if(header.timestamp < r.header.timestamp){
-            return true;
-        } else if (header.timestamp > r.header.timestamp){
-            return false;
-        } else { // Same timestamp
-            if(header.packet_number < r.header.packet_number){
-                return true;
-            } else { // l.packet_number > r.packet_number
-                return false;
-            }
-        }
-    }*/
 
     uint16_t get_timestamp(){
         return header.get_timestamp();
@@ -242,9 +230,9 @@ struct sync_packet_t: public boost::intrusive::list_base_hook<> {
     }
 };
 
-inline bool operator==(const sync_packet_t& l, const sync_packet_t& r){return (l.header == r.header);}
+inline bool operator==(const sync_packet_t& l, const sync_packet_t& r){ return (l.header == r.header); }
 
-inline bool operator!=(const sync_packet_t& l, const sync_packet_t& r){return !(l == r);}
+inline bool operator!=(const sync_packet_t& l, const sync_packet_t& r){ return !(l == r); }
 
 bool sync_write_header_type0(sync_header_type0_t* header, srslte::byte_buffer_t* pdu, srslte::log* sync_log);
 bool sync_write_header_type1(sync_header_type1_t* header, srslte::byte_buffer_t* pdu, srslte::log* sync_log);

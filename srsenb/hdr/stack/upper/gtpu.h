@@ -101,11 +101,11 @@ private:
     // These are the real buffers that contain the packets, the queue stores only the address
     // Make room for all the packets in the tx to isolate problems
     // All data_packets = 330330 aprox, all sync_packets = 165165 aprox
-    srslte::sync_packet_t sync_packets[340000];
-    srslte::sync_header_type0_t sync_info_packets[170000];
+    srslte::sync_packet_t sync_data_packets[340000]; // Add parameter
+    srslte::sync_header_type0_t sync_info_packets[170000]; // Add parameter
 
-    int counter = 0;
-    int counter_info = 0;
+    int counter = 0; // Add max_counter as parameter
+    int counter_info = 0; // Add max_counter_info as parameter
 
     bool initiated    = false;
     int  m1u_sd       = -1;

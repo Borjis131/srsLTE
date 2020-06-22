@@ -53,8 +53,8 @@ void enb::cleanup()
   pthread_mutex_unlock(&enb_instance_mutex);
 }
 //ENB_POOL_SIZE == 10240
-// 500000 too big for IRIS testbed resources?
-// Cant work with 300000
+// 300000 too big for IRIS testbed resources
+// Try 200000
 enb::enb() : started(false), pool(srslte::byte_buffer_pool::get_instance(200000))
 {
   // print build info

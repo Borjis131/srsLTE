@@ -363,7 +363,7 @@ void gtpu::m1u_handler::handle_rx_packet(srslte::unique_byte_buffer_t pdu, const
   // Avoiding switch variable initialization problems
   uint32_t period_sec, period_nsec;
   uint8_t* ptr;
-  sync_packets[counter] = {};
+  //sync_data_packets[counter] = {};
   switch(sync_read_header(pdu.get(), &sync_common_header, gtpu_log)){
 
     case SYNC_PDU_TYPE_0:
@@ -378,9 +378,9 @@ void gtpu::m1u_handler::handle_rx_packet(srslte::unique_byte_buffer_t pdu, const
     case SYNC_PDU_TYPE_1:
       //sync_read_header_type1(pdu.get(), &sync_header1, gtpu_log);
       sync_read_header_type1(pdu.get(), &sync_header_type1, gtpu_log);
-      sync_packets[counter].header = sync_header_type1;
-      sync_packets[counter].payload = std::move(pdu);
-      queue.push_data(sync_packets[counter]);
+      sync_data_packets[counter].header = sync_header_type1;
+      sync_data_packets[counter].payload = std::move(pdu);
+      queue.push_data(sync_data_packets[counter]);
       counter++;
       break;
     
