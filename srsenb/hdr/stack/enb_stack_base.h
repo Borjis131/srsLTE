@@ -35,6 +35,7 @@ typedef struct {
   bool        enable;
   std::string m1u_multiaddr;
   std::string m1u_if_addr;
+  int         sync_sequence_duration;
 } embms_args_t;
 
 typedef struct {

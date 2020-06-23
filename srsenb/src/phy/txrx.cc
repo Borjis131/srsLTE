@@ -113,9 +113,11 @@ void txrx::run_thread()
   sleep.tv_sec = args.delay;
   sleep.tv_nsec = 0L;
   clock_gettime(CLOCK_REALTIME, &now);
-  log_h->console("Waiting %ld seconds\n", sleep.tv_sec - now.tv_sec);
+  log_h->console("Starting, please wait %ld seconds\n", sleep.tv_sec - now.tv_sec);
   clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &sleep, (timespec *)NULL);
-  log_h->console("Starting txrx\n");
+  // Moved here to wait for the delay
+  log_h->console("\n==== eNodeB started ===\n");
+  log_h->console("Type <t> to view trace\n");
 
   // Main loop
   while (running) {

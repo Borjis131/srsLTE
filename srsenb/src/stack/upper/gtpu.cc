@@ -44,6 +44,7 @@ bool gtpu::init(std::string                  gtp_bind_addr_,
                 srsenb::pdcp_interface_gtpu* pdcp_,
                 stack_interface_gtpu_lte*    stack_,
                 srslte::log*                 gtpu_log_,
+                int                          sync_sequence_duration_,
                 bool                         enable_mbsfn_)
 {
   pdcp          = pdcp_;
@@ -86,7 +87,7 @@ bool gtpu::init(std::string                  gtp_bind_addr_,
   // Start MCH socket if enabled
   enable_mbsfn = enable_mbsfn_;
   if (enable_mbsfn) {
-    if (not m1u.init(m1u_multiaddr_, m1u_if_addr_)) {
+    if (not m1u.init(m1u_multiaddr_, m1u_if_addr_, sync_sequence_duration_)) {
       return false;
     }
   }
@@ -292,13 +293,13 @@ gtpu::m1u_handler::~m1u_handler()
   }
 }
 
-bool gtpu::m1u_handler::init(std::string m1u_multiaddr_, std::string m1u_if_addr_)
+bool gtpu::m1u_handler::init(std::string m1u_multiaddr_, std::string m1u_if_addr_, int sync_sequence_duration_)
 {
   m1u_multiaddr = std::move(m1u_multiaddr_);
   m1u_if_addr   = std::move(m1u_if_addr_);
   pdcp          = parent->pdcp;
   gtpu_log      = parent->gtpu_log;
-  queue = sync_queue<srslte::sync_packet_t, srslte::sync_header_type0_t>(pdcp, 4);
+  queue = sync_queue<srslte::sync_packet_t, srslte::sync_header_type0_t>(pdcp, 4, sync_sequence_duration_);
 
   // Set up sink socket
   struct sockaddr_in bindaddr = {};

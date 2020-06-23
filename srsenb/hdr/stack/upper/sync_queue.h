@@ -46,21 +46,23 @@ private:
     boost::intrusive::list<Info, boost::intrusive::constant_time_size<false>> info_queue; // Queue storing sync info packets
     pthread_mutex_t data_mutex, info_mutex;
     pthread_cond_t cv_has_data, cv_has_info;
-    uint32_t max_check_intervals;
+    int max_check_intervals;
     srsenb::pdcp_interface_gtpu* pdcp = nullptr;
     uint32_t consumer = 0;
     uint32_t producer = 0;
     timespec sync_period = {}; // Stores the sync period reference
     int sync_period_counter = 0; // Number of sync periods
-    int sort_elements = 10; // Number of elements to be sorted with partial_sort
+    int sequence_duration; // Duration in ms of the SYNC sequence
+    //int sort_elements = 10; // Number of elements to be sorted with partial_sort
 
 public:
-    explicit sync_queue<Data, Info>(srsenb::pdcp_interface_gtpu* pdcp_, int checks_ = 4){
+    explicit sync_queue<Data, Info>(srsenb::pdcp_interface_gtpu* pdcp_, int checks_ = 4, int seq_duration_ = 10){
         pthread_mutex_init(&data_mutex, NULL);
         pthread_mutex_init(&info_mutex, NULL);
         pthread_cond_init(&cv_has_data, NULL);
         pthread_cond_init(&cv_has_info, NULL);
         max_check_intervals = checks_; // Add parameter
+        sequence_duration = seq_duration_;
         pdcp = pdcp_;
     }
 
@@ -70,6 +72,7 @@ public:
         pthread_cond_init(&cv_has_data, NULL);
         pthread_cond_init(&cv_has_info, NULL);
         max_check_intervals = 0;
+        sequence_duration = 0;
         pdcp = nullptr;
     }
 
@@ -79,7 +82,7 @@ public:
      * currently waits for the info_mutex (check)
      */
     void set_sync_period(uint32_t sync_period_sec, uint32_t sync_period_nsec){
-        std::cout << "Received sync period seconds: " << sync_period_sec << " and nanoseconds: " << sync_period_nsec << "\n";
+        //std::cout << "Received sync period seconds: " << sync_period_sec << " and nanoseconds: " << sync_period_nsec << "\n";
         pthread_mutex_lock(&info_mutex);
         sync_period.tv_sec = sync_period_sec;
         sync_period.tv_nsec = sync_period_nsec;
@@ -98,6 +101,7 @@ public:
         std::cout << "producer lock obtained" << unsigned(consumer) << "\n";
         data_queue.push_back(data);
         data_queue.sort();
+        // partial_sort_data();
         pthread_cond_signal(&cv_has_data);
         std::cout << "producer fired condition variable signal" << unsigned(consumer) << "\n";
         pthread_mutex_unlock(&data_mutex);
@@ -114,7 +118,6 @@ public:
         std::cout << "producer waiting for lock (push_info)\n";
         std::cout << "producer lock obtained (push_info)\n";
         info_queue.push_back(info);
-        // Will crash when timestamp 59999 is sent in the mbms_gw
         info_queue.sort();
         // partial_sort_info();
         pthread_cond_signal(&cv_has_info);
@@ -138,44 +141,13 @@ public:
      * TODO: implement partial_sort for data_packets
      * Not thread-safe
      */
-    void partial_sort_data(){
-        int queue_size = data_queue.size();
-        if(queue_size <= sort_elements){
-            data_queue.sort();
-        } else {
-            Data sort_array[sort_elements];
-            for(int i = 0; i < sort_elements; i++){
-                sort_array[i] = std::move(data_queue.back());
-                data_queue.pop_back();
-            }
-            std::sort(sort_array, sort_array+sort_elements);
-            for(int i = 0; i < sort_elements; i++){
-                data_queue.push_back(sort_array[i]);
-            }
-        }
-    }
+    void partial_sort_data(){}
 
     /*
      * TODO: implement partial_sort for info_packets
-     * Different number than sort_elements (Different for info and data?)
      * Not thread-safe
      */
-    void partial_sort_info(){
-        int queue_size = info_queue.size();
-        if(queue_size <= sort_elements){
-            info_queue.sort();
-        } else {
-            Info sort_array[sort_elements];
-            for(int i = 0; i < sort_elements; i++){
-                sort_array[i] = info_queue.back();
-                info_queue.pop_back();
-            }
-            std::sort(sort_array, sort_array+sort_elements);
-            for(int i = 0; i < sort_elements; i++){
-                info_queue.push_back(sort_array[i]);
-            }
-        }
-    }
+    void partial_sort_info(){}
 
     /*
      * wait_and_pop():
@@ -183,7 +155,7 @@ public:
      * Waits if the queue is empty. Runs in continuous loop.
      */
     void wait_and_pop(){
-        std::cout << "SYNC consumer started\n";
+        //std::cout << "SYNC consumer started\n";
         Info popped_value = {};
         Data popped_data_value = {};
         while(true){
@@ -235,7 +207,7 @@ public:
      * Running in continuous loop.
      */
     void wait_time_and_pop(){
-        std::cout << "SYNC consumer started\n";
+        //std::cout << "SYNC consumer started\n";
         Info popped_value = {};
         Data popped_data_value[50]; // Just a random number ideally the SYNC sequence max_value
         while(true){
@@ -265,10 +237,7 @@ public:
             }
             std::cout << "consumer obtained data_lock\n";
 
-            // Will not crash when timestamp 59999 is sent in the mbms_gw
-            //data_queue.sort(); // Sort here the queue?
-            // Needs to be partial_sort
-            // partial_sort_data();
+            // partial_sort_data(); // Sort here the queue?
             
             int data_burst = 0;
             int queue_size = data_queue.size();
@@ -292,8 +261,7 @@ public:
             pthread_mutex_unlock(&data_mutex);
             std::cout << "consumer released lock" << unsigned(producer) << "\n";
 
-            // Perform the last "check" 
-            // Margin of X nanoseconds?
+            // Perform the last "check"
             clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &pop_time, (timespec *)NULL);
 
             clock_gettime(CLOCK_REALTIME, &now);
@@ -323,22 +291,21 @@ public:
         std::cout << "perform_checks timestamp: " << unsigned(timestamp) << "\n";
 
         // Everytime timestamp 0 is reached 
-        if(timestamp == 0 /*&& popped_value.packet_number == 0*/){ // Not needed always 0 for info packets
+        if(timestamp == 0){
             std::cout << "Updating sync_period reference\n";
-            sync_period.tv_sec = sync_period.tv_sec + (600*sync_period_counter); //60000 or 59999?
+            sync_period.tv_sec = sync_period.tv_sec + (((60000*sequence_duration)/1000)*sync_period_counter); //60000 or 59999?
             sync_period_counter++;
         }
 
-        timespec pop_time = timestamp_to_timespec(timestamp); // 0 timestamp and 10*ms case solved
-        pop_time = ts_addtime(pop_time, sync_period);
-        //pop_time = ts_addtime(pop_time, current_sync_period); // Adding the period to the timestamp
+        timespec pop_time = timestamp_to_timespec(timestamp); // 0 timestamp and sequence_duration*ms case solved
+        pop_time = ts_addtime(pop_time, sync_period); // Adding the period to the timestamp
         
         timespec check_reference; // Current time, used for adding the wait_interval every loop
         clock_gettime(CLOCK_REALTIME, &check_reference);
         timespec wait_time = ts_difftime(pop_time, check_reference); // Full wait time
         
         std::cout << "Overall checks wait_time: " << wait_time.tv_sec << ":" << wait_time.tv_nsec << ", reference: " << check_reference.tv_sec << ":" 
-        << check_reference.tv_nsec << " and pop_time: " << pop_time.tv_sec << ":" << pop_time.tv_nsec << "\n";
+        << check_reference.tv_nsec << " sync_period: " << sync_period_counter << " and pop_time: " << pop_time.tv_sec << ":" << pop_time.tv_nsec << "\n";
         //std::cout << "Current sync_period seconds: " << current_sync_period.tv_sec << " and nanoseconds: " << current_sync_period.tv_nsec << "\n";
         
         if(wait_time.tv_sec < 0 || (wait_time.tv_sec <= 0 && (wait_time.tv_nsec - 500000L < 0L))){ // Adjusts minimum time to perform several checks
@@ -365,11 +332,6 @@ public:
             sleep_interval = ts_addtime(sleep_interval, check_reference); // Add the check_reference for the absolute time
             clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &sleep_interval, (timespec *)NULL);
             
-            // Just a test to see the time elapsed between nanosleep and lock
-            // sleep_interval = check_reference + (ts_multtime(wait_time, ))
-            // sleep_time(now + wait_time*(max_checks - current_checks + 1))
-            // clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &sleep_time, (timespec *)NULL);
-            //nanosleep(&wait_interval, (timespec *)NULL);
             pthread_mutex_lock(&info_mutex);
 
             wait_time = ts_difftime(wait_time, wait_interval);
@@ -450,12 +412,13 @@ public:
     timespec timestamp_to_timespec(uint16_t timestamp){
         timespec conversion;
         timestamp += 1; // Adding 1 to all timestamps
-        // Considering timestamp represents 10 milliseconds
-        if(timestamp >= 100){
-            conversion.tv_nsec = (timestamp%100)*10000000;
-            conversion.tv_sec = timestamp/100;
+        // Considering timestamp 0 represents sequence_length milliseconds and so on
+        int ratio = (1000/sequence_duration);
+        if(timestamp >= ratio){
+            conversion.tv_nsec = (timestamp%ratio)*(1000000000/ratio);
+            conversion.tv_sec = timestamp/ratio;
         } else {
-            conversion.tv_nsec = timestamp*10000000;
+            conversion.tv_nsec = timestamp*(1000000000/ratio);
             conversion.tv_sec = 0;
         }
         return conversion;

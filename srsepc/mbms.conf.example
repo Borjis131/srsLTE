@@ -12,6 +12,7 @@
 # m1u_multi_addr:   Multicast group for eNBs (TODO this should be setup with M2/M3)
 # m1u_multi_if:     IP of local interface for multicast traffic
 # m1u_multi_ttl:    TTL for M1-U multicast traffic
+# sync_sequence_packets: Number of packets sent in every SYNC sequence
 #
 #####################################################################
 [mbms_gw]
@@ -22,6 +23,7 @@ sgi_mb_if_mask = 255.255.255.255
 m1u_multi_addr = 239.255.0.1
 m1u_multi_if   = 127.0.1.200
 m1u_multi_ttl  = 1
+#sync_sequence_packets = 5
 
 ####################################################################
 # Log configuration

@@ -160,6 +160,7 @@ nof_ctrl_symbols = 2
 # enable:               Enable MBMS transmission in the eNB
 # m1u_multiaddr:        Multicast addres the M1-U socket will register to
 # m1u_if_addr:          Address of the inteferface the M1-U interface will listen for multicast packets.
+# sync_sequence_duration: Duration in ms of the SYNC sequence.
 #
 #####################################################################
 [embms]
@@ -169,6 +170,7 @@ nof_ctrl_symbols = 2
 enable = true
 m1u_multiaddr = 239.255.0.1
 m1u_if_addr = 127.0.1.201
+#sync_sequence_duration = 10
 
 
 #####################################################################
@@ -265,6 +267,8 @@ m1u_if_addr = 127.0.1.201
 # max_prach_offset_us:  Maximum allowed RACH offset (in us)
 # eea_pref_list:        Ordered preference list for the selection of encryption algorithm (EEA) (default: EEA0, EEA2, EEA1).
 # eia_pref_list:        Ordered preference list for the selection of integrity algorithm (EIA) (default: EIA2, EIA1, EIA0).
+# 
+# delay: Delay to start first eNB txrx. Represented by UNIX epoch.
 #
 #####################################################################
 [expert]
