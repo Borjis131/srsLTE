@@ -49,6 +49,7 @@ typedef struct {
   std::string m1u_multi_addr;
   std::string m1u_multi_if;
   int         m1u_multi_ttl;
+  int         sync_sequence_packets;  // Number of packets in the SYNC sequence
 } mbms_gw_args_t;
 
 struct pseudo_hdr {
@@ -94,6 +95,7 @@ private:
   uint64_t total_number_of_octet; // change to uint8_t[5]
   bool locked = false; // Send SYNC period reference only one time
   uint8_t current_sync_period; // Flag to differentiate between SYNC periods while sorting
+  int sync_sequence_packets; // Packets per SYNC sequence
 
   bool m_sgi_mb_up;
   int  m_sgi_mb_if;

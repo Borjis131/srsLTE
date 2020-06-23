@@ -241,6 +241,7 @@ int mbms_gw::init_m1_u(mbms_gw_args_t* args)
   packet_number = 0;
   elapsed_octet_counter = 0;
   current_sync_period = 0;
+  sync_sequence_packets = args->sync_sequence_packets;
 
   return SRSLTE_SUCCESS;
 }
@@ -290,8 +291,8 @@ void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
     return;
   }
 
-  // Every 4 packets increment timestamp
-  if(packet_number >= 4){
+  // Every 1 packets increment timestamp
+  if(packet_number >= sync_sequence_packets){
 
     total_number_of_packet = total_number_of_packet + packet_number + 1; // Packet 0 exists
     total_number_of_octet = total_number_of_octet + elapsed_octet_counter;
