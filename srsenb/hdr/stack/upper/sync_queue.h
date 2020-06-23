@@ -155,7 +155,6 @@ public:
      * Waits if the queue is empty. Runs in continuous loop.
      */
     void wait_and_pop(){
-        //std::cout << "SYNC consumer started\n";
         Info popped_value = {};
         Data popped_data_value = {};
         while(true){
@@ -207,7 +206,6 @@ public:
      * Running in continuous loop.
      */
     void wait_time_and_pop(){
-        //std::cout << "SYNC consumer started\n";
         Info popped_value = {};
         Data popped_data_value[50]; // Just a random number ideally the SYNC sequence max_value
         while(true){
@@ -290,9 +288,10 @@ public:
 
         std::cout << "perform_checks timestamp: " << unsigned(timestamp) << "\n";
 
-        // Everytime timestamp 0 is reached 
+        // Update SYNC period every timestamp 0
         if(timestamp == 0){
             std::cout << "Updating sync_period reference\n";
+
             sync_period.tv_sec = sync_period.tv_sec + (((60000*sequence_duration)/1000)*sync_period_counter); //60000 or 59999?
             sync_period_counter++;
         }
@@ -331,7 +330,7 @@ public:
 
             sleep_interval = ts_addtime(sleep_interval, check_reference); // Add the check_reference for the absolute time
             clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &sleep_interval, (timespec *)NULL);
-            
+
             pthread_mutex_lock(&info_mutex);
 
             wait_time = ts_difftime(wait_time, wait_interval);

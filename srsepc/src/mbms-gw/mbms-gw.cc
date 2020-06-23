@@ -320,7 +320,6 @@ void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
   // Setup SYNC header
   sync_header.pdu_type = srslte::SYNC_PDU_TYPE_1 | (current_sync_period & 0x0F); // Workaround to diff periods
   sync_header.timestamp = timestamp;
-  std::cout << "Writing timestamp: " << unsigned(timestamp) << "\n";
   sync_header.packet_number = packet_number;
   sync_header.elapsed_octet_counter = elapsed_octet_counter;
   sync_header.crc = 4; // Header and payload CRC
