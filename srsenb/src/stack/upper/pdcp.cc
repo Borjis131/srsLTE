@@ -170,6 +170,7 @@ void pdcp::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t 
       users[rnti].pdcp->write_sdu(lcid, std::move(sdu), false);
     } else {
       std::cout << "MBMS sdu: " << unsigned(sdu->N_bytes) << "\n";
+      log_h->debug_hex(sdu->msg, sdu->N_bytes, "MBMS sdu: \n");
       users[rnti].pdcp->write_sdu_mch(lcid, std::move(sdu));
     }
   }
