@@ -18,6 +18,7 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+#include <iostream>
 
 #include "srsenb/hdr/stack/upper/pdcp.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
@@ -168,6 +169,7 @@ void pdcp::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t 
       // TODO: expose blocking mode as function param
       users[rnti].pdcp->write_sdu(lcid, std::move(sdu), false);
     } else {
+      std::cout << "MBMS sdu: " << unsigned(sdu->N_bytes) << "\n";
       users[rnti].pdcp->write_sdu_mch(lcid, std::move(sdu));
     }
   }
