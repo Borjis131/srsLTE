@@ -196,6 +196,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("embms.m1u_multiaddr", bpo::value<string>(&args->stack.embms.m1u_multiaddr)->default_value("239.255.0.1"), "M1-U Multicast address the eNB joins.")
     ("embms.m1u_if_addr", bpo::value<string>(&args->stack.embms.m1u_if_addr)->default_value("127.0.1.201"), "IP address of the interface the eNB will listen for M1-U traffic.")
     ("embms.sync_sequence_duration", bpo::value<int>(&args->stack.embms.sync_sequence_duration)->default_value(10), "Duration in ms of the SYNC sequence.")
+    ("embms.sync_sequence_packets", bpo::value<int>(&args->stack.embms.sync_sequence_packets)->default_value(5), "Number of packets in each SYNC sequence.")
     ;
 
   // Positional options - config file location

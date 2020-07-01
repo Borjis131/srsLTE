@@ -156,6 +156,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
             this,
             &gtpu_log,
             args.embms.sync_sequence_duration,
+            args.embms.sync_sequence_packets,
             args.embms.enable);
 
   started = true;

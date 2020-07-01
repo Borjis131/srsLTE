@@ -36,6 +36,7 @@ typedef struct {
   std::string m1u_multiaddr;
   std::string m1u_if_addr;
   int         sync_sequence_duration;
+  int         sync_sequence_packets;
 } embms_args_t;
 
 typedef struct {

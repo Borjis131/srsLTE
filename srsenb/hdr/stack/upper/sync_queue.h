@@ -53,16 +53,18 @@ private:
     timespec sync_period = {}; // Stores the sync period reference
     int sync_period_counter = 0; // Number of sync periods
     int sequence_duration; // Duration in ms of the SYNC sequence
+    int sequence_packets; // Number of packets per SYNC sequence <--- Workaround
     //int sort_elements = 10; // Number of elements to be sorted with partial_sort
 
 public:
-    explicit sync_queue<Data, Info>(srsenb::pdcp_interface_gtpu* pdcp_, int checks_ = 4, int seq_duration_ = 10){
+    explicit sync_queue<Data, Info>(srsenb::pdcp_interface_gtpu* pdcp_, int checks_ = 4, int seq_duration_ = 10, int seq_packets_ = 5){
         pthread_mutex_init(&data_mutex, NULL);
         pthread_mutex_init(&info_mutex, NULL);
         pthread_cond_init(&cv_has_data, NULL);
         pthread_cond_init(&cv_has_info, NULL);
         max_check_intervals = checks_; // Add parameter
         sequence_duration = seq_duration_;
+        sequence_packets = seq_packets_;
         pdcp = pdcp_;
     }
 
@@ -73,6 +75,7 @@ public:
         pthread_cond_init(&cv_has_info, NULL);
         max_check_intervals = 0;
         sequence_duration = 0;
+        sequence_packets = 0;
         pdcp = nullptr;
     }
 
@@ -238,11 +241,14 @@ public:
             // partial_sort_data(); // Sort here the queue?
             
             int data_burst = 0;
-            int queue_size = data_queue.size();
+            //int queue_size = data_queue.size();
             timespec now, delay_data, delay_info;
 
-            // The limit is the number of items in the queue but the loop breaks in the first different timestamp
-            for(int i = 0; i < queue_size; i++){
+            // Previous: The limit is the number of items in the queue but the loop breaks in the first different timestamp
+            // queue_size before
+
+            // Limit the sequence_packets to check only that number of times
+            for(int i = 0; i < sequence_packets; i++){
                 popped_data_value[i] = std::move(data_queue.front());
                 if(popped_value.get_timestamp() == popped_data_value[i].get_timestamp()){
                     data_burst++;
@@ -252,6 +258,7 @@ public:
                     //std::cout << "Popped data element at: " << delay_data.tv_sec << " seconds and " << delay_data.tv_nsec << " nanoseconds\n";
                     //pdcp->write_sdu(0xFFFD, 1, std::move(popped_data_value.payload)); // Hardcoded lcid for now
                 } else {
+                    std::cout << "Checking a packet out of order\n";
                     data_queue.pop_front();
                     data_queue.push_front(popped_data_value[i]);
                     break;

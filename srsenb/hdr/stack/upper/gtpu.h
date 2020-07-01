@@ -49,6 +49,7 @@ public:
             stack_interface_gtpu_lte* stack_,
             srslte::log*              gtpu_log_,
             int                       sync_sequence_duration_,
+            int                       sync_sequence_packets_,
             bool                      enable_mbsfn = false);
   void stop();
 
@@ -86,7 +87,7 @@ private:
     m1u_handler(m1u_handler&&)      = delete;
     m1u_handler& operator=(const m1u_handler&) = delete;
     m1u_handler& operator=(m1u_handler&&) = delete;
-    bool         init(std::string m1u_multiaddr_, std::string m1u_if_addr_, int sync_sequence_duration_);
+    bool         init(std::string m1u_multiaddr_, std::string m1u_if_addr_, int sync_sequence_duration_, int sync_sequence_packets_);
     void         handle_rx_packet(srslte::unique_byte_buffer_t pdu, const sockaddr_in& addr);
     bool         init_mbms_sync();
 
