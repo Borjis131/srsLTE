@@ -253,8 +253,10 @@ public:
                 if(popped_value.get_timestamp() == popped_data_value[i].get_timestamp()){
                     data_burst++;
                     data_queue.pop_front();
+                    
                     // DEBUG
-                    std::cout << "(checking_queue) checking unique_byte_buffer_t: " << unsigned(popped_data_value[i].payload->N_bytes) << "\n";
+                    //std::cout << "(checking_queue) checking unique_byte_buffer_t: " << unsigned(popped_data_value[i].payload->N_bytes) << "\n";
+
                     //std::cout << "Popped data element at: " << delay_data.tv_sec << " seconds and " << delay_data.tv_nsec << " nanoseconds\n";
                     //pdcp->write_sdu(0xFFFD, 1, std::move(popped_data_value.payload)); // Hardcoded lcid for now
                 } else {
@@ -279,8 +281,10 @@ public:
                 clock_gettime(CLOCK_REALTIME, &now);
                 delay_data = ts_difftime(pop_time, now);
                 std::cout << "Popped data element at: " << delay_data.tv_sec << " seconds and " << delay_data.tv_nsec << " nanoseconds\n";
+
                 // DEBUG
-                std::cout << "(sending to pdcp) checking unique_byte_buffer_t: " << unsigned(popped_data_value[i].payload->N_bytes) << "\n";
+                //std::cout << "(sending to pdcp) checking unique_byte_buffer_t: " << unsigned(popped_data_value[i].payload->N_bytes) << "\n";
+
                 pdcp->write_sdu(0xFFFD, 1, std::move(popped_data_value[i].payload)); // Hardcoded lcid for now
             }
         }
