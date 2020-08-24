@@ -36,6 +36,7 @@ endif (RPATH)
 add_library(enb_cfg_parser parser.cc enb_cfg_parser.cc)
 
 add_executable(srsenb main.cc enb.cc metrics_stdout.cc metrics_csv.cc)
+add_executable(clocky clocky.cc)
 target_link_libraries(srsenb  srsenb_radio
                               srsenb_phy
                               srsenb_stack
