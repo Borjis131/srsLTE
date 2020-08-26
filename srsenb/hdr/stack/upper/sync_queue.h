@@ -285,6 +285,10 @@ public:
                 // DEBUG
                 //std::cout << "(sending to pdcp) checking unique_byte_buffer_t: " << unsigned(popped_data_value[i].payload->N_bytes) << "\n";
 
+                // Removing sync header before sending the content to PDCP
+                popped_data_value[i].payload->msg += srslte::SYNC_HEADER_TYPE_1_LEN_BYTES;
+                popped_data_value[i].payload->N_bytes -= srslte::SYNC_HEADER_TYPE_1_LEN_BYTES;
+
                 pdcp->write_sdu(0xFFFD, 1, std::move(popped_data_value[i].payload)); // Hardcoded lcid for now
             }
         }
